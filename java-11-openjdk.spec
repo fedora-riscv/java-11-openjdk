@@ -196,7 +196,7 @@
 %global origin_nice     OpenJDK
 %global top_level_dir_name   %{origin}
 %global minorver        0
-%global buildver        20
+%global buildver        22
 # priority must be 7 digits in total
 # setting to 1, so debug ones can have 0
 %global priority        00000%{minorver}1
@@ -869,7 +869,7 @@ URL:      http://openjdk.java.net/
 
 # to regenerate source0 (jdk) and source8 (jdk's taspets) run update_package.sh
 # update_package.sh contains hard-coded repos, revisions, tags, and projects to regenerate the source archives
-Source0: shenandoah-jdk%{majorver}-b516c8c7a0a4.tar.xz
+Source0: shenandoah-jdk%{majorver}-shenandoah-jdk-%{majorver}+%{buildver}.tar.xz
 Source8: systemtap_3.2_tapsets_hg-icedtea8-9d464368e06d.tar.xz
 
 # Desktop files. Adapted from IcedTea
