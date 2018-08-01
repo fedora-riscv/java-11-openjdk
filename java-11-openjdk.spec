@@ -945,9 +945,7 @@ BuildRequires: nss-devel
 BuildRequires: pkgconfig
 BuildRequires: xorg-x11-proto-devel
 BuildRequires: zip
-# since we require only javapackages-filesystem we have to require whole javapackages-tools in build-time to have various _jvm macros expanded
-# note, that this dependency is bringing current main JDK into build-root
-BuildRequires: javapackages-tools
+BuildRequires: javapackages-filesystem
 BuildRequires: java-11-openjdk-devel
 # Zero-assembler build requirement
 %ifnarch %{jit_arches}
@@ -1734,6 +1732,9 @@ require "copy_jdk_configs.lua"
 
 
 %changelog
+* Mon Jul 30 2018 Jiri Vanek <jvanek@redhat.com> - 1:11.0.ea.22-5
+- now buildrequires javapackages-filesystem as the  issue with macros should be fixed
+
 * Wed Jul 18 2018 Jiri Vanek <jvanek@redhat.com> - 1:11.0.ea.22-2
 - changed to build by itself instead of by jdk10
 
