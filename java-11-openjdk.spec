@@ -196,7 +196,7 @@
 %global origin_nice     OpenJDK
 %global top_level_dir_name   %{origin}
 %global minorver        0
-%global buildver        22
+%global buildver        28
 # priority must be 7 digits in total
 # setting to 1, so debug ones can have 0
 %global priority        00000%{minorver}1
@@ -499,7 +499,9 @@ exit 0
 %{_jvmdir}/%{sdkdir -- %{?1}}/bin/rmiregistry
 %{_jvmdir}/%{sdkdir -- %{?1}}/bin/unpack200
 %dir %{_jvmdir}/%{sdkdir -- %{?1}}/lib
+%ifarch %{jit_arches}
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/classlist
+%endif
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/jexec
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/jrt-fs.jar
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/modules
@@ -546,12 +548,9 @@ exit 0
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/libunpack.so
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/libverify.so
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/libzip.so
-# Zero does not have JFR
-%ifarch %{jit_arches}
 %dir %{_jvmdir}/%{sdkdir -- %{?1}}/lib/jfr
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/jfr/default.jfc
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/jfr/profile.jfc
-%endif
 %{_mandir}/man1/java-%{uniquesuffix -- %{?1}}.1*
 %{_mandir}/man1/jjs-%{uniquesuffix -- %{?1}}.1*
 %{_mandir}/man1/keytool-%{uniquesuffix -- %{?1}}.1*
@@ -835,7 +834,7 @@ Provides: java-%{javaver}-%{origin}-src%{?1} = %{epoch}:%{version}-%{release}
 
 Name:    java-%{javaver}-%{origin}
 Version: %{newjavaver}.%{buildver}
-Release: 7%{?dist}
+Release: 2%{?dist}
 # java-1.5.0-ibm from jpackage.org set Epoch to 1 for unknown reasons
 # and this change was brought into RHEL-4. java-1.5.0-ibm packages
 # also included the epoch in their virtual provides. This created a
@@ -1724,6 +1723,19 @@ require "copy_jdk_configs.lua"
 
 
 %changelog
+* Thu Sep 4 2018 Jiri Vanek <jvanek@redhat.com> - 1:11.0.ea.28-2
+- jfr/*jfc files listed for all arches
+- lib/classlist do not exists s390, ifarch-ed via jit_arches out
+
+* Fri Aug 31 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:11.0.ea.28-1
+- Update to latest upstream build jdk11+28, the first release
+  candidate.
+
+* Wed Aug 29 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:11.0.ea.22-8
+- Adjust system NSS patch, RHBZ-1565658-system-nss-SunEC.patch, so
+  as to filter -Wl,--as-needed from linker flags. Fixes FTBFS issue.
+  Resolves: RHBZ#1623437
+
 * Thu Aug 23 2018 Jiri Vanek <jvanek@redhat.com> - 1:11.0.ea.22-6
 - dissabled accessibility, fixed provides for main package's debug variant
 
