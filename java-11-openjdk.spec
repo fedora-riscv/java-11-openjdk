@@ -200,7 +200,7 @@
 
 # New Version-String scheme-style defines
 %global majorver 11
-%global securityver 7
+%global securityver 8
 # buildjdkver is usually same as %%{majorver},
 # but in time of bootstrap of next jdk, it is majorver-1, 
 # and this it is better to change it here, on single place
@@ -226,7 +226,7 @@
 %global top_level_dir_name   %{origin}
 %global minorver        0
 %global buildver        10
-%global rpmrelease      1
+%global rpmrelease      0
 #%%global tagsuffix      ""
 # priority must be 8 digits in total; untill openjdk 1.8 we were using 18..... so when moving to 11 we had to add another digit
 %if %is_system_jdk
@@ -561,6 +561,7 @@ exit 0
 
 %define files_jre_headless() %{expand:
 %license %{_jvmdir}/%{sdkdir -- %{?1}}/legal
+%doc %{_defaultdocdir}/%{uniquejavadocdir -- %{?1}}/NEWS
 %dir %{_sysconfdir}/.java/.systemPrefs
 %dir %{_sysconfdir}/.java
 %dir %{_jvmdir}/%{sdkdir -- %{?1}}
@@ -1012,6 +1013,9 @@ Source8: tapsets-icedtea-%{icedteaver}.tar.xz
 # Desktop files. Adapted from IcedTea
 Source9: jconsole.desktop.in
 
+# Release notes
+Source10: NEWS
+
 # nss configuration file
 Source11: nss.cfg.in
 
@@ -1075,12 +1079,6 @@ Patch8: s390-8214206_fix.patch
 # able to be removed once that release is out
 # and used by this RPM.
 #############################################
-# JDK-8237396: JvmtiTagMap::weak_oops_do() should not trigger barriers
-Patch11: jdk8237396-avoid_triggering_barriers.patch
-# JDK-8228407: JVM crashes with shared archive file mismatch
-Patch12: jdk8228407-shared_archive_crash.patch
-# JDK-8243541: (tz) Upgrade time-zone data to tzdata2020a
-Patch13: jdk8243541-tzdata2020a.patch
 
 #############################################
 #
@@ -1317,9 +1315,6 @@ pushd %{top_level_dir_name}
 %patch6 -p1
 %patch7 -p1
 %patch8 -p1
-%patch11 -p1
-%patch12 -p1
-%patch13 -p1
 popd # openjdk
 
 %patch1000
@@ -1398,9 +1393,8 @@ EXTRA_CPP_FLAGS="%ourcppflags -std=gnu++98 -fno-delete-null-pointer-checks -fno-
 EXTRA_CFLAGS="$EXTRA_CFLAGS -fno-strict-aliasing"
 %endif
 # Fixes annocheck warnings in assembler files due to missing build notes
-EXTRA_CPP_FLAGS="$EXTRA_CPP_FLAGS -Wa,--generate-missing-build-notes=yes"
-EXTRA_CFLAGS="$EXTRA_CFLAGS -Wa,--generate-missing-build-notes=yes"
-export EXTRA_CFLAGS
+EXTRA_ASFLAGS="${EXTRA_CFLAGS} -Wa,--generate-missing-build-notes=yes"
+export EXTRA_CFLAGS EXTRA_ASFLAGS
 
 for suffix in %{build_loop} ; do
 if [ "x$suffix" = "x" ] ; then
@@ -1439,6 +1433,7 @@ bash ../configure \
     --with-stdc++lib=dynamic \
     --with-extra-cxxflags="$EXTRA_CPP_FLAGS" \
     --with-extra-cflags="$EXTRA_CFLAGS" \
+    --with-extra-asflags="$EXTRA_ASFLAGS" \
     --with-extra-ldflags="%{ourldflags}" \
     --with-num-cores="$NUM_PROC" \
     --disable-javac-server \
@@ -1651,6 +1646,11 @@ if ! echo $suffix | grep -q "debug" ; then
   cp -a %{buildoutputdir -- $suffix}/bundles/jdk-%{newjavaver}%{ea_designator_zip}+%{buildver}%{lts_designator_zip}-docs.zip $RPM_BUILD_ROOT%{_javadocdir}/%{uniquejavadocdir -- $suffix}.zip
 fi
 
+# Install release notes
+commondocdir=${RPM_BUILD_ROOT}%{_defaultdocdir}/%{uniquejavadocdir -- $suffix}
+install -d -m 755 ${commondocdir}
+cp -a %{SOURCE10} ${commondocdir}
+
 # Install icons and menu entries
 for s in 16 24 32 48 ; do
   install -D -p -m 644 \
@@ -1861,6 +1861,14 @@ require "copy_jdk_configs.lua"
 
 
 %changelog
+* Sat Jul 11 2020 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.8.10-0
+- Update to shenandoah-jdk-11.0.8+10 (GA)
+- Add release notes for 11.0.7 & 11.0.8 releases.
+- Amend release notes, removing issue actually fixed in 11.0.6.
+- Update release notes with last minute fix (JDK-8248505).
+- Drop JDK-8237396, JDK-8228407 & JDK-8243541 backports now applied upstream.
+- Make use of --with-extra-asflags introduced in jdk-11.0.6+1.
+
 * Tue Jun 02 2020 Andrew John Hughes <gnu.andrew@redhat.com> - 1:11.0.7.10-1
 - Backport JDK-8243541 & require tzdata 2020a as latest Fedora tzdata package needs resource updates
 - Resolves: rhbz#1837376
