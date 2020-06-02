@@ -1,0 +1,1371 @@
+# HG changeset patch
+# User kravikumar
+# Date 1588095080 0
+#      Tue Apr 28 17:31:20 2020 +0000
+# Node ID 7c78ed7702bc6a0b0c115d4f8ee3d3bbd238284d
+# Parent  983d5f7f0b6bf11ad6983c985f393ed7ead4d441
+8243541: (tz) Upgrade time-zone data to tzdata2020a
+Reviewed-by: naoto, martin, andrew
+
+diff --git a/make/data/tzdata/VERSION b/make/data/tzdata/VERSION
+--- a/make/data/tzdata/VERSION
++++ b/make/data/tzdata/VERSION
+@@ -21,4 +21,4 @@
+ # or visit www.oracle.com if you need additional information or have any
+ # questions.
+ #
+-tzdata2019c
++tzdata2020a
+diff --git a/make/data/tzdata/africa b/make/data/tzdata/africa
+--- a/make/data/tzdata/africa
++++ b/make/data/tzdata/africa
+@@ -890,19 +890,25 @@
+ # Morocco will be on GMT starting from Sunday, May 5th 2019 at 3am.
+ # The switch to GMT+1 will occur on Sunday, June 9th 2019 at 2am....
+ # http://fr.le360.ma/societe/voici-la-date-du-retour-a-lheure-legale-au-maroc-188222
++
++# From Semlali Naoufal (2020-04-14):
++# Following the announcement by the Moroccan government, the switch to
++# GMT time will take place on Sunday, April 19, 2020 from 3 a.m. and
++# the return to GMT+1 time will take place on Sunday, May 31, 2020 at 2 a.m....
++# https://maroc-diplomatique.net/maroc-le-retour-a-lheure-gmt-est-prevu-dimanche-prochain/
++# http://aujourdhui.ma/actualite/gmt1-retour-a-lheure-normale-dimanche-prochain-1
+ #
+-# From Paul Eggert (2019-05-20):
+-# This agrees with our 2018-11-01 guess that the Moroccan government
+-# would continue the practice of falling back at 03:00 the last Sunday
+-# before Ramadan, and of springing forward at 02:00 the first Sunday after
+-# Ramadan, as this has been the practice since 2012.  To implement this,
+-# transition dates for 2019 through 2087 were determined by running the
+-# following program under GNU Emacs 26.2.
+-# (let ((islamic-year 1440))
++# From Paul Eggert (2020-04-14):
++# For now, guess that in the future Morocco will fall back at 03:00
++# the last Sunday before Ramadan, and spring forward at 02:00 the
++# first Sunday after the day after Ramadan.  To implement this,
++# transition dates for 2021 through 2087 were determined by running
++# the following program under GNU Emacs 26.3.
++# (let ((islamic-year 1442))
+ #   (require 'cal-islam)
+ #   (while (< islamic-year 1511)
+ #     (let ((a (calendar-islamic-to-absolute (list 9 1 islamic-year)))
+-#           (b (calendar-islamic-to-absolute (list 10 1 islamic-year)))
++#           (b (1+ (calendar-islamic-to-absolute (list 10 1 islamic-year))))
+ #           (sunday 0))
+ #       (while (/= sunday (mod (setq a (1- a)) 7)))
+ #       (while (/= sunday (mod b 7))
+@@ -962,7 +968,7 @@
+ Rule	Morocco	2019	only	-	May	 5	 3:00	-1:00	-
+ Rule	Morocco	2019	only	-	Jun	 9	 2:00	0	-
+ Rule	Morocco	2020	only	-	Apr	19	 3:00	-1:00	-
+-Rule	Morocco	2020	only	-	May	24	 2:00	0	-
++Rule	Morocco	2020	only	-	May	31	 2:00	0	-
+ Rule	Morocco	2021	only	-	Apr	11	 3:00	-1:00	-
+ Rule	Morocco	2021	only	-	May	16	 2:00	0	-
+ Rule	Morocco	2022	only	-	Mar	27	 3:00	-1:00	-
+@@ -978,7 +984,7 @@
+ Rule	Morocco	2027	only	-	Feb	 7	 3:00	-1:00	-
+ Rule	Morocco	2027	only	-	Mar	14	 2:00	0	-
+ Rule	Morocco	2028	only	-	Jan	23	 3:00	-1:00	-
+-Rule	Morocco	2028	only	-	Feb	27	 2:00	0	-
++Rule	Morocco	2028	only	-	Mar	 5	 2:00	0	-
+ Rule	Morocco	2029	only	-	Jan	14	 3:00	-1:00	-
+ Rule	Morocco	2029	only	-	Feb	18	 2:00	0	-
+ Rule	Morocco	2029	only	-	Dec	30	 3:00	-1:00	-
+@@ -994,7 +1000,7 @@
+ Rule	Morocco	2034	only	-	Nov	 5	 3:00	-1:00	-
+ Rule	Morocco	2034	only	-	Dec	17	 2:00	0	-
+ Rule	Morocco	2035	only	-	Oct	28	 3:00	-1:00	-
+-Rule	Morocco	2035	only	-	Dec	 2	 2:00	0	-
++Rule	Morocco	2035	only	-	Dec	 9	 2:00	0	-
+ Rule	Morocco	2036	only	-	Oct	19	 3:00	-1:00	-
+ Rule	Morocco	2036	only	-	Nov	23	 2:00	0	-
+ Rule	Morocco	2037	only	-	Oct	 4	 3:00	-1:00	-
+@@ -1010,7 +1016,7 @@
+ Rule	Morocco	2042	only	-	Aug	10	 3:00	-1:00	-
+ Rule	Morocco	2042	only	-	Sep	21	 2:00	0	-
+ Rule	Morocco	2043	only	-	Aug	 2	 3:00	-1:00	-
+-Rule	Morocco	2043	only	-	Sep	 6	 2:00	0	-
++Rule	Morocco	2043	only	-	Sep	13	 2:00	0	-
+ Rule	Morocco	2044	only	-	Jul	24	 3:00	-1:00	-
+ Rule	Morocco	2044	only	-	Aug	28	 2:00	0	-
+ Rule	Morocco	2045	only	-	Jul	 9	 3:00	-1:00	-
+@@ -1026,7 +1032,7 @@
+ Rule	Morocco	2050	only	-	May	15	 3:00	-1:00	-
+ Rule	Morocco	2050	only	-	Jun	26	 2:00	0	-
+ Rule	Morocco	2051	only	-	May	 7	 3:00	-1:00	-
+-Rule	Morocco	2051	only	-	Jun	11	 2:00	0	-
++Rule	Morocco	2051	only	-	Jun	18	 2:00	0	-
+ Rule	Morocco	2052	only	-	Apr	28	 3:00	-1:00	-
+ Rule	Morocco	2052	only	-	Jun	 2	 2:00	0	-
+ Rule	Morocco	2053	only	-	Apr	13	 3:00	-1:00	-
+@@ -1042,7 +1048,7 @@
+ Rule	Morocco	2058	only	-	Feb	17	 3:00	-1:00	-
+ Rule	Morocco	2058	only	-	Mar	31	 2:00	0	-
+ Rule	Morocco	2059	only	-	Feb	 9	 3:00	-1:00	-
+-Rule	Morocco	2059	only	-	Mar	16	 2:00	0	-
++Rule	Morocco	2059	only	-	Mar	23	 2:00	0	-
+ Rule	Morocco	2060	only	-	Feb	 1	 3:00	-1:00	-
+ Rule	Morocco	2060	only	-	Mar	 7	 2:00	0	-
+ Rule	Morocco	2061	only	-	Jan	16	 3:00	-1:00	-
+@@ -1052,13 +1058,13 @@
+ Rule	Morocco	2062	only	-	Dec	31	 3:00	-1:00	-
+ Rule	Morocco	2063	only	-	Feb	 4	 2:00	0	-
+ Rule	Morocco	2063	only	-	Dec	16	 3:00	-1:00	-
+-Rule	Morocco	2064	only	-	Jan	20	 2:00	0	-
++Rule	Morocco	2064	only	-	Jan	27	 2:00	0	-
+ Rule	Morocco	2064	only	-	Dec	 7	 3:00	-1:00	-
+ Rule	Morocco	2065	only	-	Jan	11	 2:00	0	-
+ Rule	Morocco	2065	only	-	Nov	22	 3:00	-1:00	-
+ Rule	Morocco	2066	only	-	Jan	 3	 2:00	0	-
+ Rule	Morocco	2066	only	-	Nov	14	 3:00	-1:00	-
+-Rule	Morocco	2066	only	-	Dec	19	 2:00	0	-
++Rule	Morocco	2066	only	-	Dec	26	 2:00	0	-
+ Rule	Morocco	2067	only	-	Nov	 6	 3:00	-1:00	-
+ Rule	Morocco	2067	only	-	Dec	11	 2:00	0	-
+ Rule	Morocco	2068	only	-	Oct	21	 3:00	-1:00	-
+@@ -1068,13 +1074,13 @@
+ Rule	Morocco	2070	only	-	Oct	 5	 3:00	-1:00	-
+ Rule	Morocco	2070	only	-	Nov	 9	 2:00	0	-
+ Rule	Morocco	2071	only	-	Sep	20	 3:00	-1:00	-
+-Rule	Morocco	2071	only	-	Oct	25	 2:00	0	-
++Rule	Morocco	2071	only	-	Nov	 1	 2:00	0	-
+ Rule	Morocco	2072	only	-	Sep	11	 3:00	-1:00	-
+ Rule	Morocco	2072	only	-	Oct	16	 2:00	0	-
+ Rule	Morocco	2073	only	-	Aug	27	 3:00	-1:00	-
+ Rule	Morocco	2073	only	-	Oct	 8	 2:00	0	-
+ Rule	Morocco	2074	only	-	Aug	19	 3:00	-1:00	-
+-Rule	Morocco	2074	only	-	Sep	23	 2:00	0	-
++Rule	Morocco	2074	only	-	Sep	30	 2:00	0	-
+ Rule	Morocco	2075	only	-	Aug	11	 3:00	-1:00	-
+ Rule	Morocco	2075	only	-	Sep	15	 2:00	0	-
+ Rule	Morocco	2076	only	-	Jul	26	 3:00	-1:00	-
+@@ -1084,7 +1090,7 @@
+ Rule	Morocco	2078	only	-	Jul	10	 3:00	-1:00	-
+ Rule	Morocco	2078	only	-	Aug	14	 2:00	0	-
+ Rule	Morocco	2079	only	-	Jun	25	 3:00	-1:00	-
+-Rule	Morocco	2079	only	-	Jul	30	 2:00	0	-
++Rule	Morocco	2079	only	-	Aug	 6	 2:00	0	-
+ Rule	Morocco	2080	only	-	Jun	16	 3:00	-1:00	-
+ Rule	Morocco	2080	only	-	Jul	21	 2:00	0	-
+ Rule	Morocco	2081	only	-	Jun	 1	 3:00	-1:00	-
+@@ -1100,7 +1106,7 @@
+ Rule	Morocco	2086	only	-	Apr	14	 3:00	-1:00	-
+ Rule	Morocco	2086	only	-	May	19	 2:00	0	-
+ Rule	Morocco	2087	only	-	Mar	30	 3:00	-1:00	-
+-Rule	Morocco	2087	only	-	May	 4	 2:00	0	-
++Rule	Morocco	2087	only	-	May	11	 2:00	0	-
+ # For dates after the somewhat-arbitrary cutoff of 2087, assume that
+ # Morocco will no longer observe DST.  At some point this table will
+ # need to be extended, though quite possibly Morocco will change the
+@@ -1202,7 +1208,7 @@
+ Rule	Namibia	1994	only	-	Mar	21	0:00	-1:00	WAT
+ Rule	Namibia	1994	2017	-	Sep	Sun>=1	2:00	0	CAT
+ Rule	Namibia	1995	2017	-	Apr	Sun>=1	2:00	-1:00	WAT
+-# Rearguard section, for parsers that do not support negative DST.
++# Rearguard section, for parsers lacking negative DST; see ziguard.awk.
+ #Rule	Namibia	1994	only	-	Mar	21	0:00	0	WAT
+ #Rule	Namibia	1994	2017	-	Sep	Sun>=1	2:00	1:00	CAT
+ #Rule	Namibia	1995	2017	-	Apr	Sun>=1	2:00	0	WAT
+@@ -1216,7 +1222,7 @@
+ 			2:00	-	SAST	1990 Mar 21 # independence
+ # Vanguard section, for zic and other parsers that support negative DST.
+ 			2:00	Namibia	%s
+-# Rearguard section, for parsers that do not support negative DST.
++# Rearguard section, for parsers lacking negative DST; see ziguard.awk.
+ #			2:00	-	CAT	1994 Mar 21  0:00
+ # From Paul Eggert (2017-04-07):
+ # The official date of the 2017 rule change was 2017-10-24.  See:
+diff --git a/make/data/tzdata/asia b/make/data/tzdata/asia
+--- a/make/data/tzdata/asia
++++ b/make/data/tzdata/asia
+@@ -309,6 +309,27 @@
+ 
+ # China
+ 
++# From Phake Nick (2020-04-15):
++# According to this news report:
++# http://news.sina.com.cn/c/2004-09-01/19524201403.shtml
++# on April 11, 1919, newspaper in Shanghai said clocks in Shanghai will spring
++# forward for an hour starting from midnight of that Saturday. The report did
++# not mention what happened in Shanghai thereafter, but it mentioned that a
++# similar trial in Tianjin which ended at October 1st as citizens are told to
++# recede the clock on September 30 from 12:00pm to 11:00pm. The trial at
++# Tianjin got terminated in 1920.
++#
++# From Paul Eggert (2020-04-15):
++# The Returns of Trade and Trade Reports, page 711, says "Daylight saving was
++# given a trial during the year, and from the 12th April to the 1st October
++# the clocks were all set one hour ahead of sun time.  Though the scheme was
++# generally esteemed a success, it was announced early in 1920 that it would
++# not be repeated."
++#
++# Rule	NAME	FROM	TO	TYPE	IN	ON	AT	SAVE	LETTER/S
++Rule	Shang	1919	only	-	Apr	12	24:00	1:00	D
++Rule	Shang	1919	only	-	Sep	30	24:00	0	S
++
+ # From Paul Eggert (2018-10-02):
+ # The following comes from Table 1 of:
+ # Li Yu. Research on the daylight saving movement in 1940s Shanghai.
+@@ -317,6 +338,89 @@
+ # The table lists dates only; I am guessing 00:00 and 24:00 transition times.
+ # Also, the table lists the planned end of DST in 1949, but the corresponding
+ # zone line cuts this off on May 28, when the Communists took power.
++
++# From Phake Nick (2020-04-15):
++#
++# For the history of time in Shanghai between 1940-1942, the situation is
++# actually slightly more complex than the table [below]....  At the time,
++# there were three different authorities in Shanghai, including Shanghai
++# International Settlement, a settlement established by western countries with
++# its own westernized form of government, Shanghai French Concession, similar
++# to the international settlement but is controlled by French, and then the
++# rest of the city of Shanghai, which have already been controlled by Japanese
++# force through a puppet local government (Wang Jingwei regime).  It was
++# additionally complicated by the circumstances that, according to the 1940s
++# Shanghai summer time essay cited in the database, some
++# departments/businesses/people in the Shanghai city itself during that time
++# period, refused to change their clock and instead only changed their opening
++# hours.
++#
++# For example, as quoted in the article, in 1940, other than the authority
++# itself, power, tram, bus companies, cinema, department stores, and other
++# public service organizations have all decided to follow the summer time and
++# spring forward the clock.  On the other hand, the custom office refused to
++# spring forward the clock because of worry on mechanical wear to the physical
++# clock, postal office refused to spring forward because of disruption to
++# business and log-keeping, although they did changed their office hour to
++# match rest of the city.  So is travel agents, and also weather
++# observatory.  It is said both time standards had their own supporters in the
++# city at the time, those who prefer new time standard would have moved their
++# clock while those who prefer the old time standard would keep their clock
++# unchange, and there were different clocks that use different time standard
++# in the city at the time for people who use different time standard to adjust
++# their clock to their preferred time.
++#
++# a. For the 1940 May 31 spring forward, the essay claim that it was
++# coordinared between the international settlement authority and the French
++# concession authority and have gathered support from Hong Kong and Xiamen,
++# that it would spring forward an hour from May 31 "midnight", and the essay
++# claim "Hong Kong government implemented the spring forward in the same time
++# on the same date as Shanghai".
++#
++# b. For the 1940 fall back, it was said that they initially intended to do
++# so on September 30 00:59 at night, however they postponed it to October 12
++# after discussion with relevant parties. However schools restored to the
++# original schedule ten days earlier.
++#
++# c. For the 1941 spring forward, it is said to start from March 15
++# "following the previous year's method", and in addition to that the essay
++# cited an announcement in 1941 from the Wang regime which said the Special
++# City of Shanghai under Wang regime control will follow the DST rule set by
++# the Settlements, irrespective of the original DST plan announced by the Wang
++# regime for other area under its control(April 1 to September 30). (no idea
++# to situation before that announcement)
++#
++# d. For the 1941 fall back, it was said that the fall back would occurs at
++# the end of September (A newspaper headline cited by the essay, published on
++# October 1, 1941, have the headlines which said "French Concession would
++# rewind to the old clock this morning), but it ultimately didn't happen due
++# to disagreement between the international settlement authority and the
++# French concession authority, and the fall back ultimately occurred on
++# November 1.
++#
++# e. In 1941 December, Japan have officially started war with the United
++# States and the United Kingdom, and in Shanghai they have marched into the
++# international settlement, taken over its control
++#
++# f. For the 1942 spring forward, the essay said that the spring forward
++# started on January 31. It said this time the custom office and postal
++# department will also change their clocks, unlike before.
++#
++# g. The essay itself didn't cover any specific changes thereafter until the
++# end of the war, it quoted a November 1942 command from the government of the
++# Wang regime, which claim the daylight saving time applies year round during
++# the war. However, the essay ambiguously said the period is "February 1 to
++# September 30", which I don't really understand what is the meaning of such
++# period in the context of year round implementation here.. More researches
++# might be needed to show exactly what happened during that period of time.
++
++# From Phake Nick (2020-04-15):
++# According to a Japanese tour bus pamphlet in Nanjing area believed to be
++# from around year 1941: http://www.tt-museum.jp/tairiku_0280_nan1941.html ,
++# the schedule listed was in the format of Japanese time.  Which indicate some
++# use of the Japanese time (instead of syncing by DST) might have occurred in
++# the Yangtze river delta area during that period of time although the scope
++# of such use will need to be investigated to determine.
+ #
+ # Rule	NAME	FROM	TO	TYPE	IN	ON	AT	SAVE	LETTER/S
+ Rule	Shang	1940	only	-	Jun	 1	 0:00	1:00	D
+@@ -595,7 +699,7 @@
+ 			6:00	-	+06
+ 
+ 
+-# Hong Kong (Xianggang)
++# Hong Kong
+ 
+ # Milne gives 7:36:41.7; round this.
+ 
+@@ -605,9 +709,7 @@
+ # it is not [an] observatory, but the official meteorological agency of HK,
+ # and also serves as the official timing agency), there are some missing
+ # and incorrect rules. Although the exact switch over time is missing, I
+-# think 3:30 is correct. The official DST record for Hong Kong can be
+-# obtained from
+-# http://www.hko.gov.hk/gts/time/Summertime.htm
++# think 3:30 is correct.
+ 
+ # From Phake Nick (2018-10-27):
+ # According to Singaporean newspaper
+@@ -718,10 +820,10 @@
+ #   Resolution of the Legislative Council passed on 9 May 1979
+ #	https://www.legco.gov.hk/yr78-79/english/lc_sitg/hansard/h790509.pdf#page=39
+ 
+-# From Paul Eggert (2019-05-31):
++# From Paul Eggert (2020-04-15):
+ # Here are the dates given at
+-# https://www.hko.gov.hk/gts/time/Summertime.htm
+-# as of 2014-06-19:
++# https://www.hko.gov.hk/en/gts/time/Summertime.htm
++# as of 2020-02-10:
+ # Year        Period
+ # 1941        15 Jun to 30 Sep
+ # 1942        Whole year
+@@ -1851,6 +1953,47 @@
+ 
+ # '9:00' and 'JST' is from Guy Harris.
+ 
++# From Paul Eggert (2020-01-19):
++# Starting in the 7th century, Japan generally followed an ancient Chinese
++# timekeeping system that divided night and day into six hours each,
++# with hour length depending on season.  In 1873 the government
++# started requiring the use of a Western style 24-hour clock.  See:
++# Yulia Frumer, "Making Time: Astronomical Time Measurement in Tokugawa Japan"
++# <https://www.worldcat.org/oclc/1043907065>.  As the tzdb code and
++# data support only 24-hour clocks, its tables model timestamps before
++# 1873 using Western-style local mean time.
++
++# From Hideyuki Suzuki (1998-11-09):
++# 'Tokyo' usually stands for the former location of Tokyo Astronomical
++# Observatory: 139° 44' 40.90" E (9h 18m 58.727s), 35° 39' 16.0" N.
++# This data is from 'Rika Nenpyou (Chronological Scientific Tables) 1996'
++# edited by National Astronomical Observatory of Japan....
++# JST (Japan Standard Time) has been used since 1888-01-01 00:00 (JST).
++# The law is enacted on 1886-07-07.
++
++# From Hideyuki Suzuki (1998-11-16):
++# The ordinance No. 51 (1886) established "standard time" in Japan,
++# which stands for the time on 135° E.
++# In the ordinance No. 167 (1895), "standard time" was renamed to "central
++# standard time".  And the same ordinance also established "western standard
++# time", which stands for the time on 120° E....  But "western standard
++# time" was abolished in the ordinance No. 529 (1937).  In the ordinance No.
++# 167, there is no mention regarding for what place western standard time is
++# standard....
++#
++# I wrote "ordinance" above, but I don't know how to translate.
++# In Japanese it's "chokurei", which means ordinance from emperor.
++
++# From Yu-Cheng Chuang (2013-07-12):
++# ...the Meiji Emperor announced Ordinance No. 167 of Meiji Year 28 "The clause
++# about standard time" ... The adoption began from Jan 1, 1896.
++# https://ja.wikisource.org/wiki/標準時ニ關スル件_(公布時)
++#
++# ...the Showa Emperor announced Ordinance No. 529 of Showa Year 12 ... which
++# means the whole Japan territory, including later occupations, adopt Japan
++# Central Time (UT+9). The adoption began on Oct 1, 1937.
++# https://ja.wikisource.org/wiki/明治二十八年勅令第百六十七號標準時ニ關スル件中改正ノ件
++
+ # From Paul Eggert (1995-03-06):
+ # Today's _Asahi Evening News_ (page 4) reports that Japan had
+ # daylight saving between 1948 and 1951, but "the system was discontinued
+@@ -1899,37 +2042,6 @@
+ Rule	Japan	1949	only	-	Apr	Sat>=1	24:00	1:00	D
+ Rule	Japan	1950	1951	-	May	Sat>=1	24:00	1:00	D
+ 
+-# From Hideyuki Suzuki (1998-11-09):
+-# 'Tokyo' usually stands for the former location of Tokyo Astronomical
+-# Observatory: 139° 44' 40.90" E (9h 18m 58.727s), 35° 39' 16.0" N.
+-# This data is from 'Rika Nenpyou (Chronological Scientific Tables) 1996'
+-# edited by National Astronomical Observatory of Japan....
+-# JST (Japan Standard Time) has been used since 1888-01-01 00:00 (JST).
+-# The law is enacted on 1886-07-07.
+-
+-# From Hideyuki Suzuki (1998-11-16):
+-# The ordinance No. 51 (1886) established "standard time" in Japan,
+-# which stands for the time on 135° E.
+-# In the ordinance No. 167 (1895), "standard time" was renamed to "central
+-# standard time".  And the same ordinance also established "western standard
+-# time", which stands for the time on 120° E....  But "western standard
+-# time" was abolished in the ordinance No. 529 (1937).  In the ordinance No.
+-# 167, there is no mention regarding for what place western standard time is
+-# standard....
+-#
+-# I wrote "ordinance" above, but I don't know how to translate.
+-# In Japanese it's "chokurei", which means ordinance from emperor.
+-
+-# From Yu-Cheng Chuang (2013-07-12):
+-# ...the Meiji Emperor announced Ordinance No. 167 of Meiji Year 28 "The clause
+-# about standard time" ... The adoption began from Jan 1, 1896.
+-# https://ja.wikisource.org/wiki/標準時ニ關スル件_(公布時)
+-#
+-# ...the Showa Emperor announced Ordinance No. 529 of Showa Year 12 ... which
+-# means the whole Japan territory, including later occupations, adopt Japan
+-# Central Time (UT+9). The adoption began on Oct 1, 1937.
+-# https://ja.wikisource.org/wiki/明治二十八年勅令第百六十七號標準時ニ關スル件中改正ノ件
+-
+ # Zone	NAME		STDOFF	RULES	FORMAT	[UNTIL]
+ Zone	Asia/Tokyo	9:18:59	-	LMT	1887 Dec 31 15:00u
+ 			9:00	Japan	J%sT
+@@ -3109,22 +3221,9 @@
+ # [T]he Palestinian cabinet decision (Mar 8th 2016) published on
+ # http://www.palestinecabinet.gov.ps/WebSite/Upload/Decree/GOV_17/16032016134830.pdf
+ # states that summer time will end on Oct 29th at 01:00.
+-#
+-# From Tim Parenti (2016-10-19):
+-# Predict fall transitions on October's last Saturday at 01:00 from now on.
+-# This is consistent with the 2016 transition as well as our spring
+-# predictions.
+-#
+-# From Paul Eggert (2016-10-19):
+-# It's also consistent with predictions in the following URLs today:
+-# https://www.timeanddate.com/time/change/gaza-strip/gaza
+-# https://www.timeanddate.com/time/change/west-bank/hebron
+ 
+ # From Sharef Mustafa (2018-03-16):
+-# Palestine summer time will start on Mar 24th 2018 by advancing the
+-# clock by 60 minutes as per Palestinian cabinet decision published on
+-# the official website, though the decree did not specify the exact
+-# time of the time shift.
++# Palestine summer time will start on Mar 24th 2018 ...
+ # http://www.palestinecabinet.gov.ps/Website/AR/NDecrees/ViewFile.ashx?ID=e7a42ab7-ee23-435a-b9c8-a4f7e81f3817
+ 
+ # From Even Scharning (2019-03-23):
+@@ -3134,15 +3233,20 @@
+ # From Sharif Mustafa (2019-03-26):
+ # The Palestinian cabinet announced today that the switch to DST will
+ # be on Fri Mar 29th 2019 by advancing the clock by 60 minutes.
+-# The decree signing date is Mar 12th but it was not published till today.
+-# The decree does not specify the exact time of switch.
+ # http://palestinecabinet.gov.ps/Website/AR/NDecrees/ViewFile.ashx?ID=e54e9ea1-50ee-4137-84df-0d6c78da259b
+ #
+ # From Even Scharning (2019-04-10):
+ # Our source in Palestine said it happened Friday 29 at 00:00 local time....
++
++# From Sharef Mustafa (2019-10-18):
++# Palestine summer time will end on midnight Oct 26th 2019 ...
++# http://www.palestinecabinet.gov.ps/website/ar/ViewDetails?ID=43948
+ #
+ # From Paul Eggert (2019-04-10):
+ # For now, guess spring-ahead transitions are March's last Friday at 00:00.
++#
++# From Tim Parenti (2016-10-19):
++# Predict fall transitions on October's last Saturday at 01:00 from now on.
+ 
+ # Rule	NAME	FROM	TO	TYPE	IN	ON	AT	SAVE	LETTER/S
+ Rule EgyptAsia	1957	only	-	May	10	0:00	1:00	S
+diff --git a/make/data/tzdata/backward b/make/data/tzdata/backward
+--- a/make/data/tzdata/backward
++++ b/make/data/tzdata/backward
+@@ -40,6 +40,7 @@
+ Link	America/Argentina/Cordoba	America/Cordoba
+ Link	America/Tijuana		America/Ensenada
+ Link	America/Indiana/Indianapolis	America/Fort_Wayne
++Link	America/Nuuk		America/Godthab
+ Link	America/Indiana/Indianapolis	America/Indianapolis
+ Link	America/Argentina/Jujuy	America/Jujuy
+ Link	America/Indiana/Knox	America/Knox_IN
+diff --git a/make/data/tzdata/europe b/make/data/tzdata/europe
+--- a/make/data/tzdata/europe
++++ b/make/data/tzdata/europe
+@@ -572,12 +572,13 @@
+ 			 0:00	1:00	IST	1947 Nov  2  2:00s
+ 			 0:00	-	GMT	1948 Apr 18  2:00s
+ 			 0:00	GB-Eire	GMT/IST	1968 Oct 27
+-# The next line is for when negative SAVE values are used.
++# Vanguard section, for zic and other parsers that support negative DST.
+ 			 1:00	Eire	IST/GMT
+-# These three lines are for when SAVE values are always nonnegative.
++# Rearguard section, for parsers lacking negative DST; see ziguard.awk.
+ #			 1:00	-	IST	1971 Oct 31  2:00u
+ #			 0:00	GB-Eire	GMT/IST	1996
+ #			 0:00	EU	GMT/IST
++# End of rearguard section.
+ 
+ 
+ ###############################################################################
+@@ -1041,7 +1042,7 @@
+ 			1:00	Czech	CE%sT	1946 Dec  1  3:00
+ # Vanguard section, for zic and other parsers that support negative DST.
+ 			1:00	-1:00	GMT	1947 Feb 23  2:00
+-# Rearguard section, for parsers that do not support negative DST.
++# Rearguard section, for parsers lacking negative DST; see ziguard.awk.
+ #			0:00	-	GMT	1947 Feb 23  2:00
+ # End of rearguard section.
+ 			1:00	Czech	CE%sT	1979
+@@ -1198,14 +1199,17 @@
+ 			-3:00	-	-03	1980 Apr  6  2:00
+ 			-3:00	EU	-03/-02	1996
+ 			0:00	-	GMT
++#
++# Use the old name Scoresbysund, as the current name Ittoqqortoormiit
++# exceeds tzdb's 14-letter limit and has no common English abbreviation.
+ Zone America/Scoresbysund -1:27:52 -	LMT	1916 Jul 28 # Ittoqqortoormiit
+ 			-2:00	-	-02	1980 Apr  6  2:00
+ 			-2:00	C-Eur	-02/-01	1981 Mar 29
+ 			-1:00	EU	-01/+00
+-Zone America/Godthab	-3:26:56 -	LMT	1916 Jul 28 # Nuuk
++Zone America/Nuuk	-3:26:56 -	LMT	1916 Jul 28 # Godthåb
+ 			-3:00	-	-03	1980 Apr  6  2:00
+ 			-3:00	EU	-03/-02
+-Zone America/Thule	-4:35:08 -	LMT	1916 Jul 28 # Pituffik air base
++Zone America/Thule	-4:35:08 -	LMT	1916 Jul 28 # Pituffik
+ 			-4:00	Thule	A%sT
+ 
+ # Estonia
+@@ -1575,7 +1579,7 @@
+ #
+ # From January 1st, 1908 the whole of Iceland was standardised at 1 hour
+ # behind GMT. Previously, local mean solar time was used in different parts
+-# of Iceland, the almanak had been based on Reykjavik mean solar time which
++# of Iceland, the almanak had been based on Reykjavík mean solar time which
+ # was 1 hour and 28 minutes behind GMT.
+ #
+ # "first day of winter" referred to [below] means the first day of the 26 weeks
+diff --git a/make/data/tzdata/leapseconds b/make/data/tzdata/leapseconds
+--- a/make/data/tzdata/leapseconds
++++ b/make/data/tzdata/leapseconds
+@@ -87,9 +87,15 @@
+ Leap	2015	Jun	30	23:59:60	+	S
+ Leap	2016	Dec	31	23:59:60	+	S
+ 
++# UTC timestamp when this leap second list expires.
++# Any additional leap seconds will come after this.
++# This Expires line is commented out for now,
++# so that pre-2020a zic implementations do not reject this file.
++#Expires 2020	Dec	28	00:00:00
++
+ # POSIX timestamps for the data in this file:
+ #updated 1467936000 (2016-07-08 00:00:00 UTC)
+-#expires 1593302400 (2020-06-28 00:00:00 UTC)
++#expires 1609113600 (2020-12-28 00:00:00 UTC)
+ 
+-#	Updated through IERS Bulletin C58
+-#	File expires on:  28 June 2020
++#	Updated through IERS Bulletin C59
++#	File expires on:  28 December 2020
+diff --git a/make/data/tzdata/northamerica b/make/data/tzdata/northamerica
+--- a/make/data/tzdata/northamerica
++++ b/make/data/tzdata/northamerica
+@@ -109,7 +109,7 @@
+ # For more about the first ten years of DST in the United States, see
+ # Robert Garland, Ten years of daylight saving from the Pittsburgh standpoint
+ # (Carnegie Library of Pittsburgh, 1927).
+-# http://www.clpgh.org/exhibit/dst.html
++# https://web.archive.org/web/20160517155308/http://www.clpgh.org/exhibit/dst.html
+ #
+ # Shanks says that DST was called "War Time" in the US in 1918 and 1919.
+ # However, DST was imposed by the Standard Time Act of 1918, which
+@@ -1493,7 +1493,8 @@
+ 			-4:00	Canada	A%sT
+ 
+ 
+-# west Labrador, Nova Scotia, Prince Edward I
++# west Labrador, Nova Scotia, Prince Edward I,
++# Îles-de-la-Madeleine, Listuguj reserve
+ 
+ # From Brian Inglis (2015-07-20):
+ # From the historical weather station records available at:
+@@ -1512,6 +1513,13 @@
+ # in Canada to observe DST in 1971 but not 1970; for now we'll assume
+ # this is a typo.
+ 
++# From Jeffery Nichols (2020-01-09):
++# America/Halifax ... also applies to Îles-de-la-Madeleine and the Listuguj
++# reserve in Quebec. Officially, this came into effect on January 1, 2007
++# (Legal Time Act, CQLR c T-5.1), but the legislative debates surrounding that
++# bill say that it is "accommodating the customs and practices" of those
++# regions, which suggests that they have always been in-line with Halifax.
++
+ # Rule	NAME	FROM	TO	TYPE	IN	ON	AT	SAVE	LETTER/S
+ Rule	Halifax	1916	only	-	Apr	 1	0:00	1:00	D
+ Rule	Halifax	1916	only	-	Oct	 1	0:00	0	S
+@@ -1605,19 +1613,20 @@
+ 
+ # Quebec
+ 
+-# From Paul Eggert (2015-03-24):
++# From Paul Eggert (2020-01-10):
+ # See America/Toronto for most of Quebec, including Montreal.
++# See America/Halifax for the Îles de la Madeleine and the Listuguj reserve.
+ #
+ # Matthews and Vincent (1998) also write that Quebec east of the -63
+ # meridian is supposed to observe AST, but residents as far east as
+ # Natashquan use EST/EDT, and residents east of Natashquan use AST.
+ # The Quebec department of justice writes in
+ # "The situation in Minganie and Basse-Côte-Nord"
+-# http://www.justice.gouv.qc.ca/english/publications/generale/temps-minganie-a.htm
++# https://www.justice.gouv.qc.ca/en/department/ministre/functions-and-responsabilities/legal-time-in-quebec/the-situation-in-minganie-and-basse-cote-nord/
+ # that the coastal strip from just east of Natashquan to Blanc-Sablon
+ # observes Atlantic standard time all year round.
+-# https://www.assnat.qc.ca/Media/Process.aspx?MediaId=ANQ.Vigie.Bll.DocumentGenerique_8845en
+-# says this common practice was codified into law as of 2007.
++# This common practice was codified into law as of 2007; see Legal Time Act,
++# CQLR c T-5.1 <http://legisquebec.gouv.qc.ca/en/ShowDoc/cs/T-5.1>.
+ # For lack of better info, guess this practice began around 1970, contra to
+ # Shanks & Pottenger who have this region observing AST/ADT.
+ 
+@@ -1636,6 +1645,15 @@
+ # Nipigon (EST) and Rainy River (CST) are the largest that we know of.
+ # Far west Ontario is like Winnipeg; far east Quebec is like Halifax.
+ 
++# From Jeffery Nichols (2020-02-06):
++# According to the [Shanks] atlas, those western Ontario zones are huge,
++# covering most of Ontario northwest of Sault Ste Marie and Timmins.
++# The zones seem to include towns bigger than the ones they're named after,
++# like Dryden in America/Rainy_River and Wawa (and maybe Attawapiskat) in
++# America/Nipigon.  I assume it's too much trouble to change the name of the
++# zone (like when you found out that America/Glace_Bay includes Sydney, Nova
++# Scotia)....
++
+ # From Mark Brader (2003-07-26):
+ # [According to the Toronto Star] Orillia, Ontario, adopted DST
+ # effective Saturday, 1912-06-22, 22:00; the article mentions that
+@@ -2442,6 +2460,18 @@
+ # obtained in November 2008 should be ignored...
+ # I apologize for reporting incorrect information in 2008.
+ 
++# From Tim Parenti (2020-03-05):
++# The government of Yukon announced [yesterday] the cessation of seasonal time
++# changes.  "After clocks are pushed ahead one hour on March 8, the territory
++# will remain on [UTC-07].  ... [The government] found 93 per cent of
++# respondents wanted to end seasonal time changes and, of that group, 70 per
++# cent wanted 'permanent Pacific Daylight Saving Time.'"
++# https://www.cbc.ca/news/canada/north/yukon-end-daylight-saving-time-1.5486358
++#
++# Although the government press release prefers PDT, we prefer MST for
++# consistency with nearby Dawson Creek, Creston, and Fort Nelson.
++# https://yukon.ca/en/news/yukon-end-seasonal-time-change
++
+ # Rule	NAME	FROM	TO	TYPE	IN	ON	AT	SAVE	LETTER/S
+ Rule	NT_YK	1918	only	-	Apr	14	2:00	1:00	D
+ Rule	NT_YK	1918	only	-	Oct	27	2:00	0	S
+@@ -2496,11 +2526,13 @@
+ Zone America/Whitehorse	-9:00:12 -	LMT	1900 Aug 20
+ 			-9:00	NT_YK	Y%sT	1967 May 28  0:00
+ 			-8:00	NT_YK	P%sT	1980
+-			-8:00	Canada	P%sT
++			-8:00	Canada	P%sT	2020 Mar  8  2:00
++			-7:00	-	MST
+ Zone America/Dawson	-9:17:40 -	LMT	1900 Aug 20
+ 			-9:00	NT_YK	Y%sT	1973 Oct 28  0:00
+ 			-8:00	NT_YK	P%sT	1980
+-			-8:00	Canada	P%sT
++			-8:00	Canada	P%sT	2020 Mar  8  2:00
++			-7:00	-	MST
+ 
+ 
+ ###############################################################################
+diff --git a/make/data/tzdata/zone.tab b/make/data/tzdata/zone.tab
+--- a/make/data/tzdata/zone.tab
++++ b/make/data/tzdata/zone.tab
+@@ -154,8 +154,8 @@
+ CA	+5946-12014	America/Dawson_Creek	MST - BC (Dawson Cr, Ft St John)
+ CA	+5848-12242	America/Fort_Nelson	MST - BC (Ft Nelson)
+ CA	+4916-12307	America/Vancouver	Pacific - BC (most areas)
+-CA	+6043-13503	America/Whitehorse	Pacific - Yukon (south)
+-CA	+6404-13925	America/Dawson	Pacific - Yukon (north)
++CA	+6043-13503	America/Whitehorse	Pacific - Yukon (east)
++CA	+6404-13925	America/Dawson	Pacific - Yukon (west)
+ CC	-1210+09655	Indian/Cocos
+ CD	-0418+01518	Africa/Kinshasa	Dem. Rep. of Congo (west)
+ CD	-1140+02728	Africa/Lubumbashi	Dem. Rep. of Congo (east)
+@@ -212,7 +212,7 @@
+ GG	+492717-0023210	Europe/Guernsey
+ GH	+0533-00013	Africa/Accra
+ GI	+3608-00521	Europe/Gibraltar
+-GL	+6411-05144	America/Godthab	Greenland (most areas)
++GL	+6411-05144	America/Nuuk	Greenland (most areas)
+ GL	+7646-01840	America/Danmarkshavn	National Park (east coast)
+ GL	+7029-02158	America/Scoresbysund	Scoresbysund/Ittoqqortoormiit
+ GL	+7634-06847	America/Thule	Thule/Pituffik
+@@ -358,7 +358,7 @@
+ # The obsolescent zone.tab format cannot represent Europe/Simferopol well.
+ # Put it in RU section and list as UA.  See "territorial claims" above.
+ # Programs should use zone1970.tab instead; see above.
+-UA	+4457+03406	Europe/Simferopol	MSK+00 - Crimea
++UA	+4457+03406	Europe/Simferopol	Crimea
+ RU	+5836+04939	Europe/Kirov	MSK+00 - Kirov
+ RU	+4621+04803	Europe/Astrakhan	MSK+01 - Astrakhan
+ RU	+4844+04425	Europe/Volgograd	MSK+01 - Volgograd
+@@ -422,8 +422,8 @@
+ TW	+2503+12130	Asia/Taipei
+ TZ	-0648+03917	Africa/Dar_es_Salaam
+ UA	+5026+03031	Europe/Kiev	Ukraine (most areas)
+-UA	+4837+02218	Europe/Uzhgorod	Ruthenia
+-UA	+4750+03510	Europe/Zaporozhye	Zaporozh'ye/Zaporizhia; Lugansk/Luhansk (east)
++UA	+4837+02218	Europe/Uzhgorod	Transcarpathia
++UA	+4750+03510	Europe/Zaporozhye	Zaporozhye and east Lugansk
+ UG	+0019+03225	Africa/Kampala
+ UM	+2813-17722	Pacific/Midway	Midway Islands
+ UM	+1917+16637	Pacific/Wake	Wake Island
+diff --git a/src/java.base/share/classes/sun/util/resources/TimeZoneNames.java b/src/java.base/share/classes/sun/util/resources/TimeZoneNames.java
+--- a/src/java.base/share/classes/sun/util/resources/TimeZoneNames.java
++++ b/src/java.base/share/classes/sun/util/resources/TimeZoneNames.java
+@@ -272,6 +272,9 @@
+         String VICTORIA[] = new String[] {"Australian Eastern Standard Time (Victoria)", "AEST",
+                                           "Australian Eastern Daylight Time (Victoria)", "AEDT",
+                                           "Australian Eastern Time (Victoria)", "AET"};
++        String WGT[] = new String[] {"Western Greenland Time", "WGT",
++                                     "Western Greenland Summer Time", "WGST",
++                                     "Western Greenland Time", "WGT"};
+         String UTC[] = new String[] {"Coordinated Universal Time", "UTC",
+                                      "Coordinated Universal Time", "UTC",
+                                      "Coordinated Universal Time", "UTC"};
+@@ -432,7 +435,7 @@
+             {"America/Cuiaba", AMT},
+             {"America/Curacao", AST},
+             {"America/Danmarkshavn", GMT},
+-            {"America/Dawson", PST},
++            {"America/Dawson", MST},
+             {"America/Dawson_Creek", MST},
+             {"America/Detroit", EST},
+             {"America/Dominica", AST},
+@@ -444,9 +447,7 @@
+             {"America/Fort_Wayne", EST},
+             {"America/Fortaleza", BRT},
+             {"America/Glace_Bay", AST},
+-            {"America/Godthab", new String[] {"Western Greenland Time", "WGT",
+-                                              "Western Greenland Summer Time", "WGST",
+-                                              "Western Greenland Time", "WGT"}},
++            {"America/Godthab", WGT},
+             {"America/Goose_Bay", AST},
+             {"America/Grand_Turk", EST},
+             {"America/Grenada", AST},
+@@ -514,6 +515,7 @@
+             {"America/North_Dakota/Beulah", CST},
+             {"America/North_Dakota/Center", CST},
+             {"America/North_Dakota/New_Salem", CST},
++            {"America/Nuuk", WGT},
+             {"America/Ojinaga", MST},
+             {"America/Panama", EST},
+             {"America/Pangnirtung", EST},
+@@ -556,7 +558,7 @@
+             {"America/Tortola", AST},
+             {"America/Vancouver", PST},
+             {"America/Virgin", AST},
+-            {"America/Whitehorse", PST},
++            {"America/Whitehorse", MST},
+             {"America/Winnipeg", CST},
+             {"America/Yakutat", AKST},
+             {"America/Yellowknife", MST},
+@@ -798,7 +800,7 @@
+             {"Canada/Mountain", MST},
+             {"Canada/Newfoundland", NST},
+             {"Canada/Pacific", PST},
+-            {"Canada/Yukon", PST},
++            {"Canada/Yukon", MST},
+             {"Canada/Saskatchewan", CST},
+             {"CAT", CAT},
+             {"CET", CET},
+diff --git a/src/jdk.localedata/share/classes/sun/util/resources/ext/TimeZoneNames_de.java b/src/jdk.localedata/share/classes/sun/util/resources/ext/TimeZoneNames_de.java
+--- a/src/jdk.localedata/share/classes/sun/util/resources/ext/TimeZoneNames_de.java
++++ b/src/jdk.localedata/share/classes/sun/util/resources/ext/TimeZoneNames_de.java
+@@ -252,6 +252,9 @@
+         String WET[] = new String[] {"Westeurop\u00e4ische Zeit", "WEZ",
+                                      "Westeurop\u00e4ische Sommerzeit", "WESZ",
+                                      "Westeurop\u00E4ische Zeit", "WEZ"};
++        String WGT[] = new String[] {"Westgr\u00f6nl\u00e4ndische Zeit", "WGT",
++                                     "Westgr\u00f6nl\u00e4ndische Sommerzeit", "WGST",
++                                     "Westgr\u00F6nl\u00E4ndische Zeit", "WGT"};
+         String WIT[] = new String[] {"Westindonesische Zeit", "WIB",
+                                      "Westindonesische Sommerzeit", "WIST",
+                                      "Westindonesische Zeit", "WIB"};
+@@ -430,7 +433,7 @@
+             {"America/Cuiaba", AMT},
+             {"America/Curacao", AST},
+             {"America/Danmarkshavn", GMT},
+-            {"America/Dawson", PST},
++            {"America/Dawson", MST},
+             {"America/Dawson_Creek", MST},
+             {"America/Detroit", EST},
+             {"America/Dominica", AST},
+@@ -442,9 +445,7 @@
+             {"America/Fort_Wayne", EST},
+             {"America/Fortaleza", BRT},
+             {"America/Glace_Bay", AST},
+-            {"America/Godthab", new String[] {"Westgr\u00f6nl\u00e4ndische Zeit", "WGT",
+-                                              "Westgr\u00f6nl\u00e4ndische Sommerzeit", "WGST",
+-                                              "Westgr\u00F6nl\u00E4ndische Zeit", "WGT"}},
++            {"America/Godthab", WGT},
+             {"America/Goose_Bay", AST},
+             {"America/Grand_Turk", EST},
+             {"America/Grenada", AST},
+@@ -512,6 +513,7 @@
+             {"America/North_Dakota/Beulah", CST},
+             {"America/North_Dakota/Center", CST},
+             {"America/North_Dakota/New_Salem", CST},
++            {"America/Nuuk", WGT},
+             {"America/Ojinaga", MST},
+             {"America/Panama", EST},
+             {"America/Pangnirtung", EST},
+@@ -551,7 +553,7 @@
+             {"America/Tortola", AST},
+             {"America/Vancouver", PST},
+             {"America/Virgin", AST},
+-            {"America/Whitehorse", PST},
++            {"America/Whitehorse", MST},
+             {"America/Winnipeg", CST},
+             {"America/Yakutat", AKST},
+             {"America/Yellowknife", MST},
+@@ -782,7 +784,7 @@
+             {"Canada/Mountain", MST},
+             {"Canada/Newfoundland", NST},
+             {"Canada/Pacific", PST},
+-            {"Canada/Yukon", PST},
++            {"Canada/Yukon", MST},
+             {"Canada/Saskatchewan", CST},
+             {"CAT", CAT},
+             {"CET", CET},
+diff --git a/src/jdk.localedata/share/classes/sun/util/resources/ext/TimeZoneNames_es.java b/src/jdk.localedata/share/classes/sun/util/resources/ext/TimeZoneNames_es.java
+--- a/src/jdk.localedata/share/classes/sun/util/resources/ext/TimeZoneNames_es.java
++++ b/src/jdk.localedata/share/classes/sun/util/resources/ext/TimeZoneNames_es.java
+@@ -252,6 +252,9 @@
+         String WET[] = new String[] {"Hora de Europa Occidental", "WET",
+                                      "Hora de verano de Europa Occidental", "WEST",
+                                      "Hora de Europa Occidental", "WET"};
++        String WGT[] = new String[] {"Hora de Groenlandia Occidental", "WGT",
++                                     "Hora de verano de Groenlandia Occidental", "WGST",
++                                     "Hora de Groenlandia Occidental", "WGT"};
+         String WIT[] = new String[] {"Hora de Indonesia Occidental", "WIB",
+                                      "Indonesia Hora de verano de Indonesia Occidental", "WIST",
+                                      "Hora de Indonesia Occidental", "WIB"};
+@@ -430,7 +433,7 @@
+             {"America/Cuiaba", AMT},
+             {"America/Curacao", AST},
+             {"America/Danmarkshavn", GMT},
+-            {"America/Dawson", PST},
++            {"America/Dawson", MST},
+             {"America/Dawson_Creek", MST},
+             {"America/Detroit", EST},
+             {"America/Dominica", AST},
+@@ -442,9 +445,7 @@
+             {"America/Fort_Wayne", EST},
+             {"America/Fortaleza", BRT},
+             {"America/Glace_Bay", AST},
+-            {"America/Godthab", new String[] {"Hora de Groenlandia Occidental", "WGT",
+-                                              "Hora de verano de Groenlandia Occidental", "WGST",
+-                                              "Hora de Groenlandia Occidental", "WGT"}},
++            {"America/Godthab", WGT},
+             {"America/Goose_Bay", AST},
+             {"America/Grand_Turk", EST},
+             {"America/Grenada", AST},
+@@ -512,6 +513,7 @@
+             {"America/North_Dakota/Beulah", CST},
+             {"America/North_Dakota/Center", CST},
+             {"America/North_Dakota/New_Salem", CST},
++            {"America/Nuuk", WGT},
+             {"America/Ojinaga", MST},
+             {"America/Panama", EST},
+             {"America/Pangnirtung", EST},
+@@ -551,7 +553,7 @@
+             {"America/Tortola", AST},
+             {"America/Vancouver", PST},
+             {"America/Virgin", AST},
+-            {"America/Whitehorse", PST},
++            {"America/Whitehorse", MST},
+             {"America/Winnipeg", CST},
+             {"America/Yakutat", AKST},
+             {"America/Yellowknife", MST},
+@@ -782,7 +784,7 @@
+             {"Canada/Mountain", MST},
+             {"Canada/Newfoundland", NST},
+             {"Canada/Pacific", PST},
+-            {"Canada/Yukon", PST},
++            {"Canada/Yukon", MST},
+             {"Canada/Saskatchewan", CST},
+             {"CAT", CAT},
+             {"CET", CET},
+diff --git a/src/jdk.localedata/share/classes/sun/util/resources/ext/TimeZoneNames_fr.java b/src/jdk.localedata/share/classes/sun/util/resources/ext/TimeZoneNames_fr.java
+--- a/src/jdk.localedata/share/classes/sun/util/resources/ext/TimeZoneNames_fr.java
++++ b/src/jdk.localedata/share/classes/sun/util/resources/ext/TimeZoneNames_fr.java
+@@ -252,6 +252,9 @@
+         String WET[] = new String[] {"Heure d'Europe de l'Ouest", "WET",
+                                      "Heure d'\u00e9t\u00e9 d'Europe de l'Ouest", "WEST",
+                                      "Heure d'Europe de l'Ouest", "WET"} ;
++        String WGT[] = new String[] {"Heure du Groenland de l'Ouest", "WGT",
++                                     "Heure d'\u00e9t\u00e9 du Groenland de l'Ouest", "WGST",
++                                     "Heure du Groenland de l'Ouest", "WGT"};
+         String WIT[] = new String[] {"Heure de l'Indon\u00e9sie occidentale", "WIB",
+                                      "Heure d'\u00e9t\u00e9 de l'Indon\u00e9sie occidentale", "WIST",
+                                      "Heure de l'Indon\u00E9sie occidentale", "WIB"};
+@@ -430,7 +433,7 @@
+             {"America/Cuiaba", AMT},
+             {"America/Curacao", AST},
+             {"America/Danmarkshavn", GMT},
+-            {"America/Dawson", PST},
++            {"America/Dawson", MST},
+             {"America/Dawson_Creek", MST},
+             {"America/Detroit", EST},
+             {"America/Dominica", AST},
+@@ -442,9 +445,7 @@
+             {"America/Fort_Wayne", EST},
+             {"America/Fortaleza", BRT},
+             {"America/Glace_Bay", AST},
+-            {"America/Godthab", new String[] {"Heure du Groenland de l'Ouest", "WGT",
+-                                              "Heure d'\u00e9t\u00e9 du Groenland de l'Ouest", "WGST",
+-                                              "Heure du Groenland de l'Ouest", "WGT"}},
++            {"America/Godthab", WGT},
+             {"America/Goose_Bay", AST},
+             {"America/Grand_Turk", EST},
+             {"America/Grenada", AST},
+@@ -512,6 +513,7 @@
+             {"America/North_Dakota/Beulah", CST},
+             {"America/North_Dakota/Center", CST},
+             {"America/North_Dakota/New_Salem", CST},
++            {"America/Nuuk", WGT},
+             {"America/Ojinaga", MST},
+             {"America/Panama", EST},
+             {"America/Pangnirtung", EST},
+@@ -551,7 +553,7 @@
+             {"America/Tortola", AST},
+             {"America/Vancouver", PST},
+             {"America/Virgin", AST},
+-            {"America/Whitehorse", PST},
++            {"America/Whitehorse", MST},
+             {"America/Winnipeg", CST},
+             {"America/Yakutat", AKST},
+             {"America/Yellowknife", MST},
+@@ -782,7 +784,7 @@
+             {"Canada/Mountain", MST},
+             {"Canada/Newfoundland", NST},
+             {"Canada/Pacific", PST},
+-            {"Canada/Yukon", PST},
++            {"Canada/Yukon", MST},
+             {"Canada/Saskatchewan", CST},
+             {"CAT", CAT},
+             {"CET", CET},
+diff --git a/src/jdk.localedata/share/classes/sun/util/resources/ext/TimeZoneNames_it.java b/src/jdk.localedata/share/classes/sun/util/resources/ext/TimeZoneNames_it.java
+--- a/src/jdk.localedata/share/classes/sun/util/resources/ext/TimeZoneNames_it.java
++++ b/src/jdk.localedata/share/classes/sun/util/resources/ext/TimeZoneNames_it.java
+@@ -252,6 +252,9 @@
+         String WET[] = new String[] {"Ora dell'Europa occidentale", "WET",
+                                      "Ora estiva dell'Europa occidentale", "WEST",
+                                      "Ora dell'Europa occidentale", "WET"};
++        String WGT[] = new String[] {"Ora della Groenlandia occidentale", "WGT",
++                                     "Ora estiva della Groenlandia occidentale", "WGST",
++                                     "Ora della Groenlandia occidentale", "WGT"};
+         String WIT[] = new String[] {"Ora dell'Indonesia occidentale", "WIB",
+                                      "Ora estiva dell'Indonesia occidentale", "WIST",
+                                      "Ora dell'Indonesia occidentale", "WIB"};
+@@ -430,7 +433,7 @@
+             {"America/Cuiaba", AMT},
+             {"America/Curacao", AST},
+             {"America/Danmarkshavn", GMT},
+-            {"America/Dawson", PST},
++            {"America/Dawson", MST},
+             {"America/Dawson_Creek", MST},
+             {"America/Detroit", EST},
+             {"America/Dominica", AST},
+@@ -442,9 +445,7 @@
+             {"America/Fort_Wayne", EST},
+             {"America/Fortaleza", BRT},
+             {"America/Glace_Bay", AST},
+-            {"America/Godthab", new String[] {"Ora della Groenlandia occidentale", "WGT",
+-                                              "Ora estiva della Groenlandia occidentale", "WGST",
+-                                              "Ora della Groenlandia occidentale", "WGT"}},
++            {"America/Godthab", WGT},
+             {"America/Goose_Bay", AST},
+             {"America/Grand_Turk", EST},
+             {"America/Grenada", AST},
+@@ -512,6 +513,7 @@
+             {"America/North_Dakota/Beulah", CST},
+             {"America/North_Dakota/Center", CST},
+             {"America/North_Dakota/New_Salem", CST},
++            {"America/Nuuk", WGT},
+             {"America/Ojinaga", MST},
+             {"America/Panama", EST},
+             {"America/Pangnirtung", EST},
+@@ -551,7 +553,7 @@
+             {"America/Tortola", AST},
+             {"America/Vancouver", PST},
+             {"America/Virgin", AST},
+-            {"America/Whitehorse", PST},
++            {"America/Whitehorse", MST},
+             {"America/Winnipeg", CST},
+             {"America/Yakutat", AKST},
+             {"America/Yellowknife", MST},
+@@ -782,7 +784,7 @@
+             {"Canada/Mountain", MST},
+             {"Canada/Newfoundland", NST},
+             {"Canada/Pacific", PST},
+-            {"Canada/Yukon", PST},
++            {"Canada/Yukon", MST},
+             {"Canada/Saskatchewan", CST},
+             {"CAT", CAT},
+             {"CET", CET},
+diff --git a/src/jdk.localedata/share/classes/sun/util/resources/ext/TimeZoneNames_ja.java b/src/jdk.localedata/share/classes/sun/util/resources/ext/TimeZoneNames_ja.java
+--- a/src/jdk.localedata/share/classes/sun/util/resources/ext/TimeZoneNames_ja.java
++++ b/src/jdk.localedata/share/classes/sun/util/resources/ext/TimeZoneNames_ja.java
+@@ -252,6 +252,9 @@
+         String WET[] = new String[] {"\u897f\u30e8\u30fc\u30ed\u30c3\u30d1\u6642\u9593", "WET",
+                                      "\u897f\u30e8\u30fc\u30ed\u30c3\u30d1\u590f\u6642\u9593", "WEST",
+                                      "\u897F\u90E8\u30E8\u30FC\u30ED\u30C3\u30D1\u6642\u9593", "WET"};
++        String WGT[] = new String[] {"\u897f\u30b0\u30ea\u30fc\u30f3\u30e9\u30f3\u30c9\u6642\u9593", "WGT",
++                                     "\u897f\u30b0\u30ea\u30fc\u30f3\u30e9\u30f3\u30c9\u590f\u6642\u9593", "WGST",
++                                     "\u897F\u90E8\u30B0\u30EA\u30FC\u30F3\u30E9\u30F3\u30C9\u6642\u9593", "WGT"};
+         String WIT[] = new String[] {"\u897f\u30a4\u30f3\u30c9\u30cd\u30b7\u30a2\u6642\u9593", "WIB",
+                                      "\u897f\u30a4\u30f3\u30c9\u30cd\u30b7\u30a2\u590f\u6642\u9593", "WIST",
+                                      "\u897F\u90E8\u30A4\u30F3\u30C9\u30CD\u30B7\u30A2\u6642\u9593", "WIB"};
+@@ -430,7 +433,7 @@
+             {"America/Cuiaba", AMT},
+             {"America/Curacao", AST},
+             {"America/Danmarkshavn", GMT},
+-            {"America/Dawson", PST},
++            {"America/Dawson", MST},
+             {"America/Dawson_Creek", MST},
+             {"America/Detroit", EST},
+             {"America/Dominica", AST},
+@@ -442,9 +445,7 @@
+             {"America/Fort_Wayne", EST},
+             {"America/Fortaleza", BRT},
+             {"America/Glace_Bay", AST},
+-            {"America/Godthab", new String[] {"\u897f\u30b0\u30ea\u30fc\u30f3\u30e9\u30f3\u30c9\u6642\u9593", "WGT",
+-                                              "\u897f\u30b0\u30ea\u30fc\u30f3\u30e9\u30f3\u30c9\u590f\u6642\u9593", "WGST",
+-                                              "\u897F\u90E8\u30B0\u30EA\u30FC\u30F3\u30E9\u30F3\u30C9\u6642\u9593", "WGT"}},
++            {"America/Godthab", WGT},
+             {"America/Goose_Bay", AST},
+             {"America/Grand_Turk", EST},
+             {"America/Grenada", AST},
+@@ -512,6 +513,7 @@
+             {"America/North_Dakota/Beulah", CST},
+             {"America/North_Dakota/Center", CST},
+             {"America/North_Dakota/New_Salem", CST},
++            {"America/Nuuk", WGT},
+             {"America/Ojinaga", MST},
+             {"America/Panama", EST},
+             {"America/Pangnirtung", EST},
+@@ -551,7 +553,7 @@
+             {"America/Tortola", AST},
+             {"America/Vancouver", PST},
+             {"America/Virgin", AST},
+-            {"America/Whitehorse", PST},
++            {"America/Whitehorse", MST},
+             {"America/Winnipeg", CST},
+             {"America/Yakutat", AKST},
+             {"America/Yellowknife", MST},
+@@ -782,7 +784,7 @@
+             {"Canada/Mountain", MST},
+             {"Canada/Newfoundland", NST},
+             {"Canada/Pacific", PST},
+-            {"Canada/Yukon", PST},
++            {"Canada/Yukon", MST},
+             {"Canada/Saskatchewan", CST},
+             {"CAT", CAT},
+             {"CET", CET},
+diff --git a/src/jdk.localedata/share/classes/sun/util/resources/ext/TimeZoneNames_ko.java b/src/jdk.localedata/share/classes/sun/util/resources/ext/TimeZoneNames_ko.java
+--- a/src/jdk.localedata/share/classes/sun/util/resources/ext/TimeZoneNames_ko.java
++++ b/src/jdk.localedata/share/classes/sun/util/resources/ext/TimeZoneNames_ko.java
+@@ -252,6 +252,9 @@
+         String WET[] = new String[] {"\uc11c\uc720\ub7fd \uc2dc\uac04", "WET",
+                                      "\uc11c\uc720\ub7fd \uc77c\uad11\uc808\uc57d\uc2dc\uac04", "WEST",
+                                      "\uC11C\uBD80 \uC720\uB7FD \uD45C\uC900\uC2DC", "WET"};
++        String WGT[] = new String[] {"\uc11c\ubd80 \uadf8\ub9b0\ub79c\ub4dc \uc2dc\uac04", "WGT",
++                                     "\uc11c\ubd80 \uadf8\ub9b0\ub79c\ub4dc \uc77c\uad11\uc808\uc57d\uc2dc\uac04", "WGST",
++                                     "\uC11C\uBD80 \uADF8\uB9B0\uB780\uB4DC \uD45C\uC900\uC2DC", "WGT"};
+         String WIT[] = new String[] {"\uc11c\uc778\ub3c4\ub124\uc2dc\uc544 \uc2dc\uac04", "WIB",
+                                      "\uc11c\uc778\ub3c4\ub124\uc2dc\uc544 \uc77c\uad11\uc808\uc57d\uc2dc\uac04", "WIST",
+                                      "\uC11C\uBD80 \uC778\uB3C4\uB124\uC2DC\uC544 \uD45C\uC900\uC2DC", "WIB"};
+@@ -430,7 +433,7 @@
+             {"America/Cuiaba", AMT},
+             {"America/Curacao", AST},
+             {"America/Danmarkshavn", GMT},
+-            {"America/Dawson", PST},
++            {"America/Dawson", MST},
+             {"America/Dawson_Creek", MST},
+             {"America/Detroit", EST},
+             {"America/Dominica", AST},
+@@ -442,9 +445,7 @@
+             {"America/Fort_Wayne", EST},
+             {"America/Fortaleza", BRT},
+             {"America/Glace_Bay", AST},
+-            {"America/Godthab", new String[] {"\uc11c\ubd80 \uadf8\ub9b0\ub79c\ub4dc \uc2dc\uac04", "WGT",
+-                                              "\uc11c\ubd80 \uadf8\ub9b0\ub79c\ub4dc \uc77c\uad11\uc808\uc57d\uc2dc\uac04", "WGST",
+-                                              "\uC11C\uBD80 \uADF8\uB9B0\uB780\uB4DC \uD45C\uC900\uC2DC", "WGT"}},
++            {"America/Godthab", WGT},
+             {"America/Goose_Bay", AST},
+             {"America/Grand_Turk", EST},
+             {"America/Grenada", AST},
+@@ -512,6 +513,7 @@
+             {"America/North_Dakota/Beulah", CST},
+             {"America/North_Dakota/Center", CST},
+             {"America/North_Dakota/New_Salem", CST},
++            {"America/Nuuk", WGT},
+             {"America/Ojinaga", MST},
+             {"America/Panama", EST},
+             {"America/Pangnirtung", EST},
+@@ -551,7 +553,7 @@
+             {"America/Tortola", AST},
+             {"America/Vancouver", PST},
+             {"America/Virgin", AST},
+-            {"America/Whitehorse", PST},
++            {"America/Whitehorse", MST},
+             {"America/Winnipeg", CST},
+             {"America/Yakutat", AKST},
+             {"America/Yellowknife", MST},
+@@ -782,7 +784,7 @@
+             {"Canada/Mountain", MST},
+             {"Canada/Newfoundland", NST},
+             {"Canada/Pacific", PST},
+-            {"Canada/Yukon", PST},
++            {"Canada/Yukon", MST},
+             {"Canada/Saskatchewan", CST},
+             {"CAT", CAT},
+             {"CET", CET},
+diff --git a/src/jdk.localedata/share/classes/sun/util/resources/ext/TimeZoneNames_pt_BR.java b/src/jdk.localedata/share/classes/sun/util/resources/ext/TimeZoneNames_pt_BR.java
+--- a/src/jdk.localedata/share/classes/sun/util/resources/ext/TimeZoneNames_pt_BR.java
++++ b/src/jdk.localedata/share/classes/sun/util/resources/ext/TimeZoneNames_pt_BR.java
+@@ -252,6 +252,9 @@
+         String WET[] = new String[] {"Fuso hor\u00e1rio da Europa Ocidental", "WET",
+                                      "Fuso hor\u00e1rio de ver\u00e3o da Europa Ocidental", "WEST",
+                                      "Hor\u00E1rio da Europa Ocidental", "WET"};
++        String WGT[] = new String[] {"Fuso hor\u00e1rio da Groenl\u00e2ndia Ocidental", "WGT",
++                                     "Fuso hor\u00e1rio de ver\u00e3o da Groenl\u00e2ndia Ocidental", "WGST",
++                                     "Hor\u00E1rio da Groenl\u00E2ndia Ocidental", "WGT"};
+         String WIT[] = new String[] {"Fuso hor\u00e1rio da Indon\u00e9sia Ocidental", "WIB",
+                                      "Fuso hor\u00e1rio de ver\u00e3o da Indon\u00e9sia Ocidental", "WIST",
+                                      "Hor\u00E1rio da Indon\u00E9sia Ocidental", "WIB"};
+@@ -430,7 +433,7 @@
+             {"America/Cuiaba", AMT},
+             {"America/Curacao", AST},
+             {"America/Danmarkshavn", GMT},
+-            {"America/Dawson", PST},
++            {"America/Dawson", MST},
+             {"America/Dawson_Creek", MST},
+             {"America/Detroit", EST},
+             {"America/Dominica", AST},
+@@ -442,9 +445,7 @@
+             {"America/Fort_Wayne", EST},
+             {"America/Fortaleza", BRT},
+             {"America/Glace_Bay", AST},
+-            {"America/Godthab", new String[] {"Fuso hor\u00e1rio da Groenl\u00e2ndia Ocidental", "WGT",
+-                                              "Fuso hor\u00e1rio de ver\u00e3o da Groenl\u00e2ndia Ocidental", "WGST",
+-                                              "Hor\u00E1rio da Groenl\u00E2ndia Ocidental", "WGT"}},
++            {"America/Godthab", WGT},
+             {"America/Goose_Bay", AST},
+             {"America/Grand_Turk", EST},
+             {"America/Grenada", AST},
+@@ -512,6 +513,7 @@
+             {"America/North_Dakota/Beulah", CST},
+             {"America/North_Dakota/Center", CST},
+             {"America/North_Dakota/New_Salem", CST},
++            {"America/Nuuk", WGT},
+             {"America/Ojinaga", MST},
+             {"America/Panama", EST},
+             {"America/Pangnirtung", EST},
+@@ -551,7 +553,7 @@
+             {"America/Tortola", AST},
+             {"America/Vancouver", PST},
+             {"America/Virgin", AST},
+-            {"America/Whitehorse", PST},
++            {"America/Whitehorse", MST},
+             {"America/Winnipeg", CST},
+             {"America/Yakutat", AKST},
+             {"America/Yellowknife", MST},
+@@ -782,7 +784,7 @@
+             {"Canada/Mountain", MST},
+             {"Canada/Newfoundland", NST},
+             {"Canada/Pacific", PST},
+-            {"Canada/Yukon", PST},
++            {"Canada/Yukon", MST},
+             {"Canada/Saskatchewan", CST},
+             {"CAT", CAT},
+             {"CET", CET},
+diff --git a/src/jdk.localedata/share/classes/sun/util/resources/ext/TimeZoneNames_sv.java b/src/jdk.localedata/share/classes/sun/util/resources/ext/TimeZoneNames_sv.java
+--- a/src/jdk.localedata/share/classes/sun/util/resources/ext/TimeZoneNames_sv.java
++++ b/src/jdk.localedata/share/classes/sun/util/resources/ext/TimeZoneNames_sv.java
+@@ -252,6 +252,9 @@
+         String WET[] = new String[] {"V\u00e4steuropeisk tid", "WET",
+                                      "V\u00e4steuropeisk sommartid", "WEST",
+                                      "V\u00E4steuropeisk tid", "WET"};
++        String WGT[] = new String[] {"V\u00e4stra Gr\u00f6nland, normaltid", "WGT",
++                                     "V\u00e4stra Gr\u00f6nland, sommartid", "WGST",
++                                     "V\u00E4stgr\u00F6nl\u00E4ndsk tid", "WGT"};
+         String WIT[] = new String[] {"V\u00e4stindonesisk tid", "WIB",
+                                      "V\u00e4stindonesisk sommartid", "WIST",
+                                      "V\u00E4stindonesisk tid", "WIB"};
+@@ -430,7 +433,7 @@
+             {"America/Cuiaba", AMT},
+             {"America/Curacao", AST},
+             {"America/Danmarkshavn", GMT},
+-            {"America/Dawson", PST},
++            {"America/Dawson", MST},
+             {"America/Dawson_Creek", MST},
+             {"America/Detroit", EST},
+             {"America/Dominica", AST},
+@@ -442,9 +445,7 @@
+             {"America/Fort_Wayne", EST},
+             {"America/Fortaleza", BRT},
+             {"America/Glace_Bay", AST},
+-            {"America/Godthab", new String[] {"V\u00e4stra Gr\u00f6nland, normaltid", "WGT",
+-                                              "V\u00e4stra Gr\u00f6nland, sommartid", "WGST",
+-                                              "V\u00E4stgr\u00F6nl\u00E4ndsk tid", "WGT"}},
++            {"America/Godthab", WGT},
+             {"America/Goose_Bay", AST},
+             {"America/Grand_Turk", EST},
+             {"America/Grenada", AST},
+@@ -512,6 +513,7 @@
+             {"America/North_Dakota/Beulah", CST},
+             {"America/North_Dakota/Center", CST},
+             {"America/North_Dakota/New_Salem", CST},
++            {"America/Nuuk", WGT},
+             {"America/Ojinaga", MST},
+             {"America/Panama", EST},
+             {"America/Pangnirtung", EST},
+@@ -551,7 +553,7 @@
+             {"America/Tortola", AST},
+             {"America/Vancouver", PST},
+             {"America/Virgin", AST},
+-            {"America/Whitehorse", PST},
++            {"America/Whitehorse", MST},
+             {"America/Winnipeg", CST},
+             {"America/Yakutat", AKST},
+             {"America/Yellowknife", MST},
+@@ -782,7 +784,7 @@
+             {"Canada/Mountain", MST},
+             {"Canada/Newfoundland", NST},
+             {"Canada/Pacific", PST},
+-            {"Canada/Yukon", PST},
++            {"Canada/Yukon", MST},
+             {"Canada/Saskatchewan", CST},
+             {"CAT", CAT},
+             {"CET", CET},
+diff --git a/src/jdk.localedata/share/classes/sun/util/resources/ext/TimeZoneNames_zh_CN.java b/src/jdk.localedata/share/classes/sun/util/resources/ext/TimeZoneNames_zh_CN.java
+--- a/src/jdk.localedata/share/classes/sun/util/resources/ext/TimeZoneNames_zh_CN.java
++++ b/src/jdk.localedata/share/classes/sun/util/resources/ext/TimeZoneNames_zh_CN.java
+@@ -252,6 +252,9 @@
+         String WET[] = new String[] {"\u897f\u6b27\u65f6\u95f4", "WET",
+                                      "\u897f\u6b27\u590f\u4ee4\u65f6", "WEST",
+                                      "\u897F\u6B27\u65F6\u95F4", "WET"};
++        String WGT[] = new String[] {"\u897f\u683c\u6797\u5170\u5c9b\u65f6\u95f4", "WGT",
++                                     "\u897f\u683c\u6797\u5170\u5c9b\u590f\u4ee4\u65f6", "WGST",
++                                     "\u897F\u683C\u6797\u5170\u5C9B\u65F6\u95F4", "WGT"};
+         String WIT[] = new String[] {"\u897f\u5370\u5ea6\u5c3c\u897f\u4e9a\u65f6\u95f4", "WIB",
+                                      "\u897f\u5370\u5ea6\u5c3c\u897f\u4e9a\u590f\u4ee4\u65f6", "WIST",
+                                      "\u897F\u5370\u5EA6\u5C3C\u897F\u4E9A\u65F6\u95F4", "WIB"};
+@@ -430,7 +433,7 @@
+             {"America/Cuiaba", AMT},
+             {"America/Curacao", AST},
+             {"America/Danmarkshavn", GMT},
+-            {"America/Dawson", PST},
++            {"America/Dawson", MST},
+             {"America/Dawson_Creek", MST},
+             {"America/Detroit", EST},
+             {"America/Dominica", AST},
+@@ -442,9 +445,7 @@
+             {"America/Fort_Wayne", EST},
+             {"America/Fortaleza", BRT},
+             {"America/Glace_Bay", AST},
+-            {"America/Godthab", new String[] {"\u897f\u683c\u6797\u5170\u5c9b\u65f6\u95f4", "WGT",
+-                                              "\u897f\u683c\u6797\u5170\u5c9b\u590f\u4ee4\u65f6", "WGST",
+-                                              "\u897F\u683C\u6797\u5170\u5C9B\u65F6\u95F4", "WGT"}},
++            {"America/Godthab", WGT},
+             {"America/Goose_Bay", AST},
+             {"America/Grand_Turk", EST},
+             {"America/Grenada", AST},
+@@ -512,6 +513,7 @@
+             {"America/North_Dakota/Beulah", CST},
+             {"America/North_Dakota/Center", CST},
+             {"America/North_Dakota/New_Salem", CST},
++            {"America/Nuuk", WGT},
+             {"America/Ojinaga", MST},
+             {"America/Panama", EST},
+             {"America/Pangnirtung", EST},
+@@ -551,7 +553,7 @@
+             {"America/Tortola", AST},
+             {"America/Vancouver", PST},
+             {"America/Virgin", AST},
+-            {"America/Whitehorse", PST},
++            {"America/Whitehorse", MST},
+             {"America/Winnipeg", CST},
+             {"America/Yakutat", AKST},
+             {"America/Yellowknife", MST},
+@@ -782,7 +784,7 @@
+             {"Canada/Mountain", MST},
+             {"Canada/Newfoundland", NST},
+             {"Canada/Pacific", PST},
+-            {"Canada/Yukon", PST},
++            {"Canada/Yukon", MST},
+             {"Canada/Saskatchewan", CST},
+             {"CAT", CAT},
+             {"CET", CET},
+diff --git a/src/jdk.localedata/share/classes/sun/util/resources/ext/TimeZoneNames_zh_TW.java b/src/jdk.localedata/share/classes/sun/util/resources/ext/TimeZoneNames_zh_TW.java
+--- a/src/jdk.localedata/share/classes/sun/util/resources/ext/TimeZoneNames_zh_TW.java
++++ b/src/jdk.localedata/share/classes/sun/util/resources/ext/TimeZoneNames_zh_TW.java
+@@ -252,6 +252,9 @@
+         String WET[] = new String[] {"\u897f\u6b50\u6642\u9593", "WET",
+                                      "\u897f\u6b50\u590f\u4ee4\u6642\u9593", "WEST",
+                                      "\u897F\u6B50\u6642\u9593", "WET"};
++        String WGT[] = new String[] {"\u897f\u683c\u6797\u862d\u5cf6\u6642\u9593", "WGT",
++                                     "\u897f\u683c\u6797\u862d\u5cf6\u590f\u4ee4\u6642\u9593", "WGST",
++                                     "\u897F\u683C\u9675\u862D\u6642\u9593", "WGT"};
+         String WIT[] = new String[] {"\u897f\u5370\u5c3c\u6642\u9593", "WIB",
+                                      "\u897f\u5370\u5c3c\u590f\u4ee4\u6642\u9593", "WIST",
+                                      "\u897F\u5370\u5C3C\u6642\u9593", "WIB"};
+@@ -430,7 +433,7 @@
+             {"America/Cuiaba", AMT},
+             {"America/Curacao", AST},
+             {"America/Danmarkshavn", GMT},
+-            {"America/Dawson", PST},
++            {"America/Dawson", MST},
+             {"America/Dawson_Creek", MST},
+             {"America/Detroit", EST},
+             {"America/Dominica", AST},
+@@ -442,9 +445,7 @@
+             {"America/Fort_Wayne", EST},
+             {"America/Fortaleza", BRT},
+             {"America/Glace_Bay", AST},
+-            {"America/Godthab", new String[] {"\u897f\u683c\u6797\u862d\u5cf6\u6642\u9593", "WGT",
+-                                              "\u897f\u683c\u6797\u862d\u5cf6\u590f\u4ee4\u6642\u9593", "WGST",
+-                                              "\u897F\u683C\u9675\u862D\u6642\u9593", "WGT"}},
++            {"America/Godthab", WGT},
+             {"America/Goose_Bay", AST},
+             {"America/Grand_Turk", EST},
+             {"America/Grenada", AST},
+@@ -512,6 +513,7 @@
+             {"America/North_Dakota/Beulah", CST},
+             {"America/North_Dakota/Center", CST},
+             {"America/North_Dakota/New_Salem", CST},
++            {"America/Nuuk", WGT},
+             {"America/Ojinaga", MST},
+             {"America/Panama", EST},
+             {"America/Pangnirtung", EST},
+@@ -551,7 +553,7 @@
+             {"America/Tortola", AST},
+             {"America/Vancouver", PST},
+             {"America/Virgin", AST},
+-            {"America/Whitehorse", PST},
++            {"America/Whitehorse", MST},
+             {"America/Winnipeg", CST},
+             {"America/Yakutat", AKST},
+             {"America/Yellowknife", MST},
+@@ -784,7 +786,7 @@
+             {"Canada/Mountain", MST},
+             {"Canada/Newfoundland", NST},
+             {"Canada/Pacific", PST},
+-            {"Canada/Yukon", PST},
++            {"Canada/Yukon", MST},
+             {"Canada/Saskatchewan", CST},
+             {"CAT", CAT},
+             {"CET", CET},
+diff --git a/test/jdk/java/time/test/java/time/format/ZoneName.java b/test/jdk/java/time/test/java/time/format/ZoneName.java
+--- a/test/jdk/java/time/test/java/time/format/ZoneName.java
++++ b/test/jdk/java/time/test/java/time/format/ZoneName.java
+@@ -817,6 +817,7 @@
+         "America/Dominica", "America/Port_of_Spain",
+         "America/Ensenada", "America/Tijuana",
+         "America/Fort_Wayne", "America/Indiana/Indianapolis",
++        "America/Godthab", "America/Nuuk",
+         "America/Grenada", "America/Port_of_Spain",
+         "America/Guadeloupe", "America/Port_of_Spain",
+         "America/Indianapolis", "America/Indiana/Indianapolis",
