@@ -226,7 +226,7 @@
 %global top_level_dir_name   %{origin}
 %global minorver        0
 %global buildver        10
-%global rpmrelease      0
+%global rpmrelease      1
 #%%global tagsuffix      ""
 # priority must be 8 digits in total; untill openjdk 1.8 we were using 18..... so when moving to 11 we had to add another digit
 %if %is_system_jdk
@@ -859,7 +859,9 @@ Requires: ca-certificates
 # Require javapackages-filesystem for ownership of /usr/lib/jvm/ and macros
 Requires: javapackages-filesystem
 # Require zone-info data provided by tzdata-java sub-package
-Requires: tzdata-java >= 2015d
+# 2020a required as of JDK-8243541 in 11.0.8+4
+Requires: tzdata-java >= 2020a
+# for support of kernel stream control
 # libsctp.so.1 is being `dlopen`ed on demand
 Requires: lksctp-tools%{?_isa}
 # tool to copy jdk's configs - should be Recommends only, but then only dnf/yum enforce it,
@@ -1077,6 +1079,8 @@ Patch8: s390-8214206_fix.patch
 Patch11: jdk8237396-avoid_triggering_barriers.patch
 # JDK-8228407: JVM crashes with shared archive file mismatch
 Patch12: jdk8228407-shared_archive_crash.patch
+# JDK-8243541: (tz) Upgrade time-zone data to tzdata2020a
+Patch13: jdk8243541-tzdata2020a.patch
 
 #############################################
 #
@@ -1120,7 +1124,8 @@ BuildRequires: java-%{buildjdkver}-openjdk-devel
 %ifnarch %{jit_arches}
 BuildRequires: libffi-devel
 %endif
-BuildRequires: tzdata-java >= 2015d
+# 2020a required as of JDK-8243541 in 11.0.8+4
+BuildRequires: tzdata-java >= 2020a
 # Earlier versions have a bug in tree vectorization on PPC
 BuildRequires: gcc >= 4.8.3-8
 
@@ -1314,6 +1319,7 @@ pushd %{top_level_dir_name}
 %patch8 -p1
 %patch11 -p1
 %patch12 -p1
+%patch13 -p1
 popd # openjdk
 
 %patch1000
@@ -1859,6 +1865,10 @@ require "copy_jdk_configs.lua"
 
 
 %changelog
+* Tue Jun 02 2020 Andrew John Hughes <gnu.andrew@redhat.com> - 1:11.0.7.10-1
+- Backport JDK-8243541 & require tzdata 2020a as latest Fedora tzdata package needs resource updates
+- Resolves: rhbz#1837376
+
 * Wed Apr 22 2020 Andrew John Hughes <gnu.andrew@redhat.com> - 1:11.0.7.10-0
 - Update to shenandoah-jdk-11.0.7+10 (GA)
 - Switch to GA mode for final release.
