@@ -199,15 +199,16 @@
 %endif
 
 # New Version-String scheme-style defines
+# If you bump majorver, you must bump also vendor_version_string
 %global majorver 11
+# Used via new version scheme. JDK 11 was
+# GA'ed in September 2018 => 18.9
+%global vendor_version_string 18.9
 %global securityver 8
 # buildjdkver is usually same as %%{majorver},
 # but in time of bootstrap of next jdk, it is majorver-1, 
 # and this it is better to change it here, on single place
 %global buildjdkver %{majorver}
-# Used via new version scheme. JDK 11 was
-# GA'ed in September 2018 => 18.9
-%global vendor_version_string 18.9
 # Add LTS designator for RHEL builds
 %if 0%{?rhel}
   %global lts_designator "LTS"
@@ -226,7 +227,7 @@
 %global top_level_dir_name   %{origin}
 %global minorver        0
 %global buildver        10
-%global rpmrelease      0
+%global rpmrelease      1
 #%%global tagsuffix      ""
 # priority must be 8 digits in total; untill openjdk 1.8 we were using 18..... so when moving to 11 we had to add another digit
 %if %is_system_jdk
@@ -254,6 +255,23 @@
 %global ea_designator_zip -%{ea_designator}
 %global extraver .%{ea_designator}
 %global eaprefix 0.
+%endif
+
+# Define what url should JVM offer in case of a crash report
+# order may be important, epel may have rhel declared
+%if 0%{?epel}
+%global bugs  https://bugzilla.redhat.com/enter_bug.cgi?product=Fedora%20EPEL&component=%{name}&version=epel%{epel}
+%else
+%if 0%{?fedora}
+# Does not work for rawhide, keeps the version field empty
+%global bugs  https://bugzilla.redhat.com/enter_bug.cgi?product=Fedora&component=%{name}&version=%{fedora}
+%else
+%if 0%{?rhel}
+%global bugs  https://bugzilla.redhat.com/enter_bug.cgi?product=Red%20Hat%20Enterprise%20Linux%20%{rhel}&component=%{name}
+%else
+%global bugs  https://bugzilla.redhat.com/enter_bug.cgi
+%endif
+%endif
 %endif
 
 # parametrized macros are order-sensitive
@@ -1082,6 +1100,18 @@ Patch8: s390-8214206_fix.patch
 
 #############################################
 #
+# Patches appearing in 11.0.9
+#
+# This section includes patches which are present
+# in the listed OpenJDK 11u release and should be
+# able to be removed once that release is out
+# and used by this RPM.
+#############################################
+# JDK-8247874: Replacement in VersionProps.java.template not working when --with-vendor-bug-url contains '&'
+Patch9: jdk8247874-fix_ampersand_in_vm_bug_url.patch
+
+#############################################
+#
 # JDK 9+ only patches
 #
 #############################################
@@ -1315,6 +1345,7 @@ pushd %{top_level_dir_name}
 %patch6 -p1
 %patch7 -p1
 %patch8 -p1
+%patch9 -p1
 popd # openjdk
 
 %patch1000
@@ -1421,6 +1452,10 @@ bash ../configure \
     --with-version-pre="%{ea_designator}" \
     --with-version-opt=%{lts_designator} \
     --with-vendor-version-string="%{vendor_version_string}" \
+    --with-vendor-name="Red Hat, Inc." \
+    --with-vendor-url="https://www.redhat.com/" \
+    --with-vendor-bug-url="%{bugs}" \
+    --with-vendor-vm-bug-url="%{bugs}" \
     --with-boot-jdk=/usr/lib/jvm/java-%{buildjdkver}-openjdk \
     --with-debug-level=$debugbuild \
     --with-native-debug-symbols=internal \
@@ -1865,6 +1900,17 @@ require "copy_jdk_configs.lua"
 
 
 %changelog
+* Mon Jul 13 2020 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.8.10-1
+- Sync JDK-8247874 patch with upstream status in 11.0.9.
+
+* Mon Jul 13 2020 Jayashree Huttanagoudar <jhuttana@redhat.com> -1:11.0.8.10-1
+- Moved vendor_version_string to better place
+- Added a patch jdk8247874-fix_ampersand_in_vm_bug_url.patch
+
+* Mon Jul 13 2020 Jiri Vanek <jvanek@redhat.com> - 1:11.0.8.10-1
+- Set vendor property and vendor URLs
+- Made urls to be preconfigured by OS
+
 * Sat Jul 11 2020 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.8.10-0
 - Update to shenandoah-jdk-11.0.8+10 (GA)
 - Add release notes for 11.0.7 & 11.0.8 releases.
