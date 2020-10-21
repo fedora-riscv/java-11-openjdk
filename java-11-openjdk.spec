@@ -1172,7 +1172,8 @@ BuildRequires: java-%{buildjdkver}-openjdk-devel
 BuildRequires: libffi-devel
 %endif
 # 2020b required as of JDK-8254177 in October CPU
-BuildRequires: tzdata-java >= 2020b
+# Temporarily roll back tzdata build requirement while tzdata update is still in testing
+BuildRequires: tzdata-java >= 2020a
 # Earlier versions have a bug in tree vectorization on PPC
 BuildRequires: gcc >= 4.8.3-8
 
@@ -1953,6 +1954,9 @@ require "copy_jdk_configs.lua"
 
 
 %changelog
+* Wed Oct 21 03:03:35 UTC 2020 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.9.11-0
+- Temporarily roll back tzdata build requirement while tzdata update is still in testing
+
 * Mon Oct 19 2020 Severin Gehwolf <sgehwolf@redhat.com> - 1:11.0.9.11-0
 - Fix directory ownership of static-libs package
 
