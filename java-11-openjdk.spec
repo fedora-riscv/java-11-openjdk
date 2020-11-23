@@ -62,8 +62,8 @@
 # the ghosts are here to allow installation via query like `dnf install /usr/bin/java`
 # you can list those files, with appropriate sections: cat *.spec | grep -e --install -e --slave -e post_ 
 # TODO - fix those hardcoded lists via single list
-# those files ,must *NOT* be ghosted for *slowdebug* packages
-# FIXME - if you are moving jshell or jlink or simialr, always modify all three sections
+# Those files must *NOT* be ghosted for *slowdebug* packages
+# FIXME - if you are moving jshell or jlink or similar, always modify all three sections
 # you can check via headless and devels:
 #    rpm -ql --noghost java-11-openjdk-headless-11.0.1.13-8.fc29.x86_64.rpm  | grep bin
 # == rpm -ql           java-11-openjdk-headless-slowdebug-11.0.1.13-8.fc29.x86_64.rpm  | grep bin
@@ -157,6 +157,9 @@
 # No docs nor bootcycle for debug builds
 %global debug_targets images static-libs-image
 
+# Disable LTO as this causes build failures at the moment.
+# See RHBZ#1861401
+%define _lto_cflags %{nil}
 
 # Filter out flags from the optflags macro that cause problems with the OpenJDK build
 # We filter out -O flags so that the optimization of HotSpot is not lowered from O3 to O2
@@ -256,7 +259,7 @@
 %global top_level_dir_name   %{origin}
 %global minorver        0
 %global buildver        11
-%global rpmrelease      1
+%global rpmrelease      4
 #%%global tagsuffix      ""
 # priority must be 8 digits in total; untill openjdk 1.8 we were using 18..... so when moving to 11 we had to add another digit
 %if %is_system_jdk
@@ -344,6 +347,8 @@
 %define sdkbindir()     %{expand:%{_jvmdir}/%{sdkdir -- %{?1}}/bin}
 %define jrebindir()     %{expand:%{_jvmdir}/%{sdkdir -- %{?1}}/bin}
 
+%global alt_java_name     alt-java
+
 %global rpm_state_dir %{_localstatedir}/lib/rpm-state/
 
 %if %{with_systemtap}
@@ -385,6 +390,7 @@ ext=.gz
 alternatives \\
   --install %{_bindir}/java java %{jrebindir -- %{?1}}/java $PRIORITY  --family %{name}.%{_arch} \\
   --slave %{_jvmdir}/jre jre %{_jvmdir}/%{sdkdir -- %{?1}} \\
+  --slave %{_bindir}/%{alt_java_name} %{alt_java_name} %{jrebindir -- %{?1}}/%{alt_java_name} \\
   --slave %{_bindir}/jjs jjs %{jrebindir -- %{?1}}/jjs \\
   --slave %{_bindir}/keytool keytool %{jrebindir -- %{?1}}/keytool \\
   --slave %{_bindir}/pack200 pack200 %{jrebindir -- %{?1}}/pack200 \\
@@ -393,6 +399,8 @@ alternatives \\
   --slave %{_bindir}/unpack200 unpack200 %{jrebindir -- %{?1}}/unpack200 \\
   --slave %{_mandir}/man1/java.1$ext java.1$ext \\
   %{_mandir}/man1/java-%{uniquesuffix -- %{?1}}.1$ext \\
+  --slave %{_mandir}/man1/%{alt_java_name}.1$ext %{alt_java_name}.1$ext \\
+  %{_mandir}/man1/%{alt_java_name}-%{uniquesuffix -- %{?1}}.1$ext \\
   --slave %{_mandir}/man1/jjs.1$ext jjs.1$ext \\
   %{_mandir}/man1/jjs-%{uniquesuffix -- %{?1}}.1$ext \\
   --slave %{_mandir}/man1/keytool.1$ext keytool.1$ext \\
@@ -611,6 +619,7 @@ exit 0
 %{_jvmdir}/%{jrelnk -- %{?1}}
 %dir %{_jvmdir}/%{sdkdir -- %{?1}}/bin
 %{_jvmdir}/%{sdkdir -- %{?1}}/bin/java
+%{_jvmdir}/%{sdkdir -- %{?1}}/bin/%{alt_java_name}
 %{_jvmdir}/%{sdkdir -- %{?1}}/bin/jjs
 %{_jvmdir}/%{sdkdir -- %{?1}}/bin/keytool
 %{_jvmdir}/%{sdkdir -- %{?1}}/bin/pack200
@@ -670,6 +679,7 @@ exit 0
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/jfr/default.jfc
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/jfr/profile.jfc
 %{_mandir}/man1/java-%{uniquesuffix -- %{?1}}.1*
+%{_mandir}/man1/%{alt_java_name}-%{uniquesuffix -- %{?1}}.1*
 %{_mandir}/man1/jjs-%{uniquesuffix -- %{?1}}.1*
 %{_mandir}/man1/keytool-%{uniquesuffix -- %{?1}}.1*
 %{_mandir}/man1/pack200-%{uniquesuffix -- %{?1}}.1*
@@ -715,6 +725,7 @@ exit 0
 %if %is_system_jdk
 %if %{is_release_build -- %{?1}}
 %ghost %{_bindir}/java
+%ghost %{_bindir}/%{alt_java_name}
 %ghost %{_jvmdir}/jre
 # https://bugzilla.redhat.com/show_bug.cgi?id=1312019
 %ghost %{_bindir}/jjs
@@ -797,6 +808,7 @@ exit 0
 %if %{is_release_build -- %{?1}}
 %ghost %{_bindir}/javac
 %ghost %{_jvmdir}/java
+%ghost %{_jvmdir}/%{alt_java_name}
 %ghost %{_bindir}/jaotc
 %ghost %{_bindir}/jlink
 %ghost %{_bindir}/jmod
@@ -903,7 +915,7 @@ Requires: ca-certificates
 # Require javapackages-filesystem for ownership of /usr/lib/jvm/ and macros
 Requires: javapackages-filesystem
 # Require zone-info data provided by tzdata-java sub-package
-# 2020b required as of JDK-8254177 in October CPU
+# 2020a required as of JDK-8243541 in 11.0.8+4
 Requires: tzdata-java >= 2020b
 # for support of kernel stream control
 # libsctp.so.1 is being `dlopen`ed on demand
@@ -950,9 +962,9 @@ Provides: java-sdk-%{javaver}%{?1} = %{epoch}:%{version}-%{release}
 Provides: java-%{javaver}-devel%{?1} = %{epoch}:%{version}-%{release}
 Provides: java-%{javaver}-%{origin}-devel%{?1} = %{epoch}:%{version}-%{release}
 %if %is_system_jdk
-Provides: java-devel-%{origin}%{?1} = %{epoch}:%{version}-%{release}
 Provides: java-sdk-%{origin}%{?1} = %{epoch}:%{version}-%{release}
 Provides: java-devel%{?1} = %{epoch}:%{version}-%{release}
+Provides: java-%{origin}-devel%{?1} = %{epoch}:%{version}-%{release}
 Provides: java-sdk%{?1} = %{epoch}:%{version}-%{release}
 %endif
 }
@@ -983,6 +995,7 @@ Provides: java-%{javaver}-demo%{?1} = %{epoch}:%{version}-%{release}
 Provides: java-%{javaver}-%{origin}-demo%{?1} = %{epoch}:%{version}-%{release}
 %if %is_system_jdk
 Provides: java-demo%{?1} = %{epoch}:%{version}-%{release}
+Provides: java-%{origin}-demo%{?1} = %{epoch}:%{version}-%{release}
 %endif
 }
 
@@ -1009,6 +1022,7 @@ Provides: java-%{javaver}-src%{?1} = %{epoch}:%{version}-%{release}
 Provides: java-%{javaver}-%{origin}-src%{?1} = %{epoch}:%{version}-%{release}
 %if %is_system_jdk
 Provides: java-src%{?1} = %{epoch}:%{version}-%{release}
+Provides: java-%{origin}-src%{?1} = %{epoch}:%{version}-%{release}
 %endif
 }
 
@@ -1550,6 +1564,14 @@ install -m 644 nss.cfg $JAVA_HOME/conf/security/
 rm $JAVA_HOME/lib/tzdb.dat
 ln -s %{_datadir}/javazi-1.8/tzdb.dat $JAVA_HOME/lib/tzdb.dat
 
+# Create fake alt-java as a placeholder for future alt-java
+pushd ${JAVA_HOME}
+cp -a bin/java bin/%{alt_java_name}
+# add alt-java man page
+echo "Hardened java binary recommended for launching untrusted code from the Web e.g. javaws" > man/man1/%{alt_java_name}.1
+cat man/man1/java.1 >> man/man1/%{alt_java_name}.1
+popd
+
 # build cycles
 done
 
@@ -1703,7 +1725,6 @@ pushd %{buildoutputdir $suffix}/images/%{jdkimage}
   pushd $RPM_BUILD_ROOT%{_jvmdir}
     ln -sf %{sdkdir -- $suffix} %{jrelnk -- $suffix}
   popd
-
 
   # Install man pages
   install -d -m 755 $RPM_BUILD_ROOT%{_mandir}/man1
@@ -1954,6 +1975,10 @@ require "copy_jdk_configs.lua"
 
 
 %changelog
+* Mon Nov 23 2020 Jiri Vanek <jvanek@redhat.com> - 1:11.0.9.11-4
+- Create a copy of java as alt-java with alternatives and man pages
+- java-11-openjdk doesn't have a JRE tree, so don't try and copy alt-java there...
+
 * Fri Nov 06 2020 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.9.11-1
 - Update release notes for 11.0.9.1 release.
 - Update tzdata build requirement now >= 2020b is available.
@@ -1967,50 +1992,137 @@ require "copy_jdk_configs.lua"
 - Move all license files to NVR-specific JVM directory.
 - This bad placement was killing parallel installability and thus having a bad impact on leapp, if used.
 
-* Wed Oct 21 2020 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.9.11-0
-- Update to jdk-11.0.9+11
-- Drop JDK-8247874 backport now applied upstream.
-- JDK-8245832 increases the set of static libraries, so try and include them all with a wildcard.
-- Cleanup architecture and JVM feature handling in preparation for using upstreamed Shenandoah.
-- With Shenandoah now upstream in OpenJDK 11, we can use jdk-updates/jdk11 directly
-- Update tarball generation script to use PR3802, handling JDK-8233228 & JDK-8177334
-- Update release notes for 11.0.9 release.
-- Add backport of JDK-8254177 to update to tzdata 2020b
-- Require tzdata 2020b due to resource changes in JDK-8254177
+* Wed Oct 21 03:03:35 UTC 2020 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.9.11-0
 - Temporarily roll back tzdata build requirement while tzdata update is still in testing
 
 * Mon Oct 19 2020 Severin Gehwolf <sgehwolf@redhat.com> - 1:11.0.9.11-0
-- Update static-libs packaging to new layout
 - Fix directory ownership of static-libs package
 
-* Sat Jul 18 2020 Severin Gehwolf <sgehwolf@redhat.com> - 1:11.0.8.10-2
-- Build static-libs-image and add resulting files via -static-libs
-  sub-package.
-- Disable stripping of debug symbols for static libraries part of
-  the -static-libs sub-package.
+* Thu Oct 15 2020 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.9.11-0
+- Update to jdk-11.0.9+11
+- Update release notes for 11.0.9 release.
+- Add backport of JDK-8254177 to update to tzdata 2020b
+- Require tzdata 2020b due to resource changes in JDK-8254177
 
-* Mon Jul 13 2020 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.8.10-1
-- Sync JDK-8247874 patch with upstream status in 11.0.9.
+* Mon Oct 05 2020 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.9.10-0.0.ea
+- Update to jdk-11.0.9+10 (EA)
 
-* Mon Jul 13 2020 Jayashree Huttanagoudar <jhuttana@redhat.com> -1:11.0.8.10-1
-- Moved vendor_version_string to better place
-- Added a patch jdk8247874-fix_ampersand_in_vm_bug_url.patch
+* Mon Sep 28 2020 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.9.7-0.0.ea
+- Update to jdk-11.0.9+7 (EA)
 
-* Mon Jul 13 2020 Jiri Vanek <jvanek@redhat.com> - 1:11.0.8.10-1
-- Set vendor property and vendor URLs
-- Made urls to be preconfigured by OS
+* Tue Sep 15 2020 Severin Gehwolf <sgehwolf@redhat.com> - 1:11.0.9.6-0.1.ea
+- Update static-libs packaging to new layout
+
+* Tue Sep 15 2020 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.9.6-0.0.ea
+- Update to jdk-11.0.9+6 (EA)
+- Update tarball generation script to use PR3802, handling JDK-8233228 & JDK-8177334
+- Resolves: rhbz#1869017
+
+* Tue Sep 08 2020 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.9.5-0.0.ea
+- Update to jdk-11.0.9+5 (EA)
+
+* Thu Sep 03 2020 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.9.4-0.0.ea
+- Update to jdk-11.0.9+4 (EA)
+
+* Wed Aug 19 2020 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.9.3-0.0.ea
+- Update to jdk-11.0.9+3 (EA)
+
+* Tue Aug 11 2020 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.9.2-0.0.ea
+- Update to jdk-11.0.9+2 (EA)
+- With Shenandoah now upstream in OpenJDK 11, we can use jdk-updates/jdk11 directly
+
+* Tue Aug 11 2020 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.9.1-0.2.ea
+- Cleanup architecture and JVM feature handling in preparation for using upstreamed Shenandoah.
+
+* Sun Aug 09 2020 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.9.1-0.1.ea
+- Update to shenandoah-jdk-11.0.9+1 (EA)
+- Switch to EA mode for 11.0.9 pre-release builds.
+- Drop JDK-8247874 backport now applied upstream.
+- JDK-8245832 increases the set of static libraries, so try and include them all with a wildcard.
+
+* Tue Jul 28 2020 Severin Gehwolf <sgehwolf@redhat.com> - 1:11.0.8.10-1
+- Disable LTO as this breaks the build. See RHBZ#1861401.
+
+* Tue Jul 28 2020 Fedora Release Engineering <releng@fedoraproject.org> - 1:11.0.8.10-0.1
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_33_Mass_Rebuild
 
 * Sat Jul 11 2020 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.8.10-0
 - Update to shenandoah-jdk-11.0.8+10 (GA)
-- Add release notes for 11.0.7 & 11.0.8 releases.
-- Amend release notes, removing issue actually fixed in 11.0.6.
+- Switch to GA mode for final release.
 - Update release notes with last minute fix (JDK-8248505).
-- Drop JDK-8237396, JDK-8228407 & JDK-8243541 backports now applied upstream.
-- Make use of --with-extra-asflags introduced in jdk-11.0.6+1.
 
-* Tue Jun 02 2020 Andrew John Hughes <gnu.andrew@redhat.com> - 1:11.0.7.10-1
-- Backport JDK-8243541 & require tzdata 2020a as latest Fedora tzdata package needs resource updates
-- Resolves: rhbz#1837376
+* Fri Jul 10 2020 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.8.9-0.0.ea
+- Update to shenandoah-jdk-11.0.8+9 (EA)
+- Update release notes for 11.0.8 release.
+
+* Thu Jul 09 2020 Jiri Vanek <jvanek@redhat.com> - 1:11.0.8.8-0.2.ea
+- bumped to become system jdk, is_system_jdk moved from 0 to 1
+
+* Thu Jul 09 2020 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.8.8-0.1.ea
+- Re-introduce java-openjdk-src & java-openjdk-demo for system_jdk builds.
+- Fix accidental renaming of java-openjdk-devel to java-devel-openjdk.
+
+* Tue Jun 30 2020 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.8.8-0.0.ea
+- Update to shenandoah-jdk-11.0.8+8 (EA)
+
+* Tue Jun 23 2020 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.8.7-0.0.ea
+- Update to shenandoah-jdk-11.0.8+7 (EA)
+
+* Tue Jun 23 2020 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.8.6-0.0.ea
+- Update to shenandoah-jdk-11.0.8+6 (EA)
+
+* Tue Jun 23 2020 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.8.5-0.3.ea
+- Add release notes.
+- Amend release notes, removing issue actually fixed in 11.0.6.
+
+* Tue Jun 23 2020 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.8.5-0.2.ea
+- Sync JDK-8247874 patch with upstream status in 11.0.9.
+- Add missing ChangeLog entry from last series of commits.
+
+* Mon Jun 22 2020 Jayashree Huttanagoudar <jhuttana@redhat.com> - 1:1.0.8.5-0.2.ea
+- Added a patch jdk8247874-fix_ampersand_in_vm_bug_url.patch
+
+* Thu Jun 18 2020 Jayashree Huttanagoudar <jhuttana@redhat.com> - 1:1.0.8.5-0.2.ea
+- Moved vendor_version_string to better place
+
+* Thu Jun 18 2020 Jiri Vanek <jvanek@redhat.com> - 1:11.0.8.5-0.2.ea
+- set vendor property and vendor urls
+- made urls to be preconfigured by os
+
+* Tue Jun 09 2020 Severin Gehwolf <sgehwolf@redhat.com> - 1:11.0.8.5-0.1.ea
+- Disable stripping of debug symbols for static libraries part of
+  the -static-libs sub-package.
+
+* Sun Jun 07 2020 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.8.5-0.0.ea
+- Update to shenandoah-jdk-11.0.8+5 (EA)
+
+* Mon May 25 2020 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.8.4-0.0.ea
+- Update to shenandoah-jdk-11.0.8+4 (EA)
+- Require tzdata 2020a due to resource changes in JDK-8243541
+
+* Fri May 22 2020 Severin Gehwolf <sgehwolf@redhat.com> - 1:11.0.8.3-0.1.ea
+- Build static-libs-image and add resulting files via -static-libs
+  sub-package.
+
+* Tue May 19 2020 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.8.3-0.0.ea
+- Update to shenandoah-jdk-11.0.8+3 (EA)
+- Drop JDK-8233880 backport now applied upstream.
+
+* Mon May 18 2020 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.8.2-0.0.ea
+- Update to shenandoah-jdk-11.0.8+2 (EA)
+
+* Mon May 18 2020 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.8.1-0.0.ea
+- Update to shenandoah-jdk-11.0.8+1 (EA)
+- Switch to EA mode for 11.0.8 pre-release builds.
+- Drop JDK-8237396 & JDK-8228407 backports now applied upstream.
+
+* Sun May 17 2020 Andrew John Hughes <gnu.andrew@redhat.com> - 1:11.0.7.10-2
+- Backport JDK-8233880 to fix version detection of GCC 10.
+- Remove explicit compiler flags which should be handled by the upstream build
+  (-std=gnu++98, -fno-delete-null-pointer-checks, -fno-lifetime-dse)
+
+* Fri Apr 24 2020 Andrew John Hughes <gnu.andrew@redhat.com> - 1:11.0.7.10-1
+- Make use of --with-extra-asflags introduced in jdk-11.0.6+1.
 
 * Wed Apr 22 2020 Andrew John Hughes <gnu.andrew@redhat.com> - 1:11.0.7.10-0
 - Update to shenandoah-jdk-11.0.7+10 (GA)
