@@ -5,10 +5,10 @@
 # Examples:
 #
 # Produce release, fastdebug *and* slowdebug builds on x86_64 (default):
-# $ rpmbuild -ba java-1.8.0-openjdk.spec
+# $ rpmbuild -ba java-11-openjdk.spec
 #
 # Produce only release builds (no slowdebug builds) on x86_64:
-# $ rpmbuild -ba java-1.8.0-openjdk.spec --without slowdebug --without fastdebug
+# $ rpmbuild -ba java-11-openjdk.spec --without slowdebug --without fastdebug
 #
 # Only produce a release build on x86_64:
 # $ fedpkg mockbuild --without slowdebug --without fastdebug
@@ -44,10 +44,11 @@
 %global normal_suffix ""
 
 %global debug_warning This package is unoptimised with full debugging. Install only as needed and remove ASAP.
-%global debug_on with full debug on
+%global debug_on with full debugging on
+%global fastdebug_on with minimal debugging on
 %global fastdebug_warning This package is optimised with full debugging. Install only as needed and remove ASAP.
-%global for_fastdebug_on with minimal debug on
-%global for_debug for packages with debug on
+%global for_fastdebug for packages with minimal debugging on
+%global for_debug for packages with debugging on
 
 %if %{with release}
 %global include_normal_build 1
@@ -86,8 +87,10 @@
 %global ppc64be         ppc64 ppc64p7
 # Set of architectures which support multiple ABIs
 %global multilib_arches %{power64} sparc64 x86_64
-# Set of architectures for which we build debug builds
+# Set of architectures for which we build slowdebug builds
 %global debug_arches    %{ix86} x86_64 sparcv9 sparc64 %{aarch64} %{power64} s390x
+# Set of architectures for which we build fastdebug builds
+%global fastdebug_arches x86_64 ppc64le aarch64
 # Set of architectures with a Just-In-Time (JIT) compiler
 %global jit_arches      %{debug_arches} %{arm}
 # Set of architectures which run a full bootstrap cycle
@@ -96,13 +99,12 @@
 %global systemtap_arches %{jit_arches}
 # Set of architectures with a Ahead-Of-Time (AOT) compiler
 %global aot_arches      x86_64 %{aarch64}
-%global fastdebug_arches x86_64 ppc64le aarch64
 # Set of architectures which support the serviceability agent
 %global sa_arches       %{ix86} x86_64 sparcv9 sparc64 %{aarch64} %{power64} %{arm}
 # Set of architectures which support class data sharing
-# See https://bugzilla.redhat.com/show_bug.cgi?id=513605
-# MetaspaceShared::generate_vtable_methods is not implemented for the PPC JIT
-%global share_arches    %{ix86} x86_64 sparcv9 sparc64 %{aarch64} %{arm} s390x
+# As of JDK-8005165 in OpenJDK 10, class sharing is not arch-specific
+# However, it does segfault on the Zero assembler port, so currently JIT only
+%global share_arches    %{jit_arches}
 # Set of architectures for which we build the Shenandoah garbage collector
 %global shenandoah_arches x86_64 %{aarch64}
 # Set of architectures for which we build the Z garbage collector
@@ -110,7 +112,7 @@
 # Set of architectures for which alt-java has SSB mitigation
 %global ssbd_arches x86_64
 
-# By default, we build a debug build during main build on JIT architectures
+# By default, we build a slowdebug build during main build on JIT architectures
 %if %{with slowdebug}
 %ifarch %{debug_arches}
 %global include_debug_build 1
@@ -204,50 +206,62 @@
 # In some cases, the arch used by the JDK does
 # not match _arch.
 # Also, in some cases, the machine name used by SystemTap
-# does not match that given by _build_cpu
+# does not match that given by _target_cpu
 %ifarch x86_64
 %global archinstall amd64
+%global stapinstall x86_64
 %endif
 %ifarch ppc
 %global archinstall ppc
+%global stapinstall powerpc
 %endif
 %ifarch %{ppc64be}
 %global archinstall ppc64
+%global stapinstall powerpc
 %endif
 %ifarch %{ppc64le}
 %global archinstall ppc64le
+%global stapinstall powerpc
 %endif
 %ifarch %{ix86}
 %global archinstall i686
+%global stapinstall i386
 %endif
 %ifarch ia64
 %global archinstall ia64
+%global stapinstall ia64
 %endif
 %ifarch s390
 %global archinstall s390
+%global stapinstall s390
 %endif
 %ifarch s390x
 %global archinstall s390x
+%global stapinstall s390
 %endif
 %ifarch %{arm}
 %global archinstall arm
+%global stapinstall arm
 %endif
 %ifarch %{aarch64}
 %global archinstall aarch64
+%global stapinstall arm64
 %endif
 # 32 bit sparc, optimized for v9
 %ifarch sparcv9
 %global archinstall sparc
+%global stapinstall %{_target_cpu}
 %endif
 # 64 bit sparc
 %ifarch sparc64
 %global archinstall sparcv9
+%global stapinstall %{_target_cpu}
 %endif
-%ifnarch %{jit_arches}
-%global archinstall %{_arch}
+# Need to support noarch for srpm build
+%ifarch noarch
+%global archinstall %{nil}
+%global stapinstall %{nil}
 %endif
-
-
 
 %ifarch %{systemtap_arches}
 %global with_systemtap 1
@@ -256,16 +270,18 @@
 %endif
 
 # New Version-String scheme-style defines
-# If you bump majorver, you must bump also vendor_version_string
-%global majorver 11
+%global featurever 11
+%global interimver 0
+%global updatever 10
+%global patchver 0
+# If you bump featurever, you must bump also vendor_version_string
 # Used via new version scheme. JDK 11 was
 # GA'ed in September 2018 => 18.9
 %global vendor_version_string 18.9
-%global securityver 9
-# buildjdkver is usually same as %%{majorver},
-# but in time of bootstrap of next jdk, it is majorver-1, 
+# buildjdkver is usually same as %%{featurever},
+# but in time of bootstrap of next jdk, it is featurever-1,
 # and this it is better to change it here, on single place
-%global buildjdkver %{majorver}
+%global buildjdkver %{featurever}
 # Add LTS designator for RHEL builds
 %if 0%{?rhel}
   %global lts_designator "LTS"
@@ -275,6 +291,26 @@
   %global lts_designator_zip ""
 %endif
 
+# Define vendor information used by OpenJDK
+%global oj_vendor Red Hat, Inc.
+%global oj_vendor_url "https://www.redhat.com/"
+# Define what url should JVM offer in case of a crash report
+# order may be important, epel may have rhel declared
+%if 0%{?epel}
+%global oj_vendor_bug_url  https://bugzilla.redhat.com/enter_bug.cgi?product=Fedora%20EPEL&component=%{name}&version=epel%{epel}
+%else
+%if 0%{?fedora}
+# Does not work for rawhide, keeps the version field empty
+%global oj_vendor_bug_url  https://bugzilla.redhat.com/enter_bug.cgi?product=Fedora&component=%{name}&version=%{fedora}
+%else
+%if 0%{?rhel}
+%global oj_vendor_bug_url  https://bugzilla.redhat.com/enter_bug.cgi?product=Red%20Hat%20Enterprise%20Linux%20%{rhel}&component=%{name}
+%else
+%global oj_vendor_bug_url  https://bugzilla.redhat.com/enter_bug.cgi
+%endif
+%endif
+%endif
+
 # Define IcedTea version used for SystemTap tapsets and desktop file
 %global icedteaver      3.15.0
 
@@ -282,20 +318,31 @@
 %global origin          openjdk
 %global origin_nice     OpenJDK
 %global top_level_dir_name   %{origin}
-%global minorver        0
-%global buildver        11
-%global rpmrelease      9
+%global buildver        9
+%global rpmrelease      0
 #%%global tagsuffix      ""
-# priority must be 8 digits in total; up to openjdk 1.8, we were using 18..... so when we moved to 11, we had to add another digit
+# Priority must be 8 digits in total; up to openjdk 1.8, we were using 18..... so when we moved to 11, we had to add another digit
 %if %is_system_jdk
-%global priority %( printf '%02d%02d%02d%02d' %{majorver} %{minorver} %{securityver} %{buildver} )
+# Using 10 digits may overflow the int used for priority, so we combine the patch and build versions
+# It is very unlikely we will ever have a patch version > 4 or a build version > 20, so we combine as (patch * 20) + build.
+# This means 11.0.9.0+11 would have had a priority of 11000911 as before
+# A 11.0.9.1+1 would have had a priority of 11000921 (20 * 1 + 1), thus ensuring it is bigger than 11.0.9.0+11
+%global combiver $( expr 20 '*' %{patchver} + %{buildver} )
+%global priority %( printf '%02d%02d%02d%02d' %{featurever} %{interimver} %{updatever} %{combiver} )
 %else
 # for techpreview, using 1, so slowdebugs can have 0
 %global priority %( printf '%08d' 1 )
 %endif
-%global newjavaver      %{majorver}.%{minorver}.%{securityver}
+%global newjavaver      %{featurever}.%{interimver}.%{updatever}.%{patchver}
 
-%global javaver         %{majorver}
+# Omit trailing 0 in filenames when the patch version is 0
+%if 0%{?patchver} > 0
+%global filever %{newjavaver}
+%else
+%global filever %{featurever}.%{interimver}.%{updatever}
+%endif
+
+%global javaver         %{featurever}
 
 # Define milestone (EA for pre-releases, GA for releases)
 # Release will be (where N is usually a number starting at 1):
@@ -314,25 +361,8 @@
 %global eaprefix 0.
 %endif
 
-# Define what url should JVM offer in case of a crash report
-# order may be important, epel may have rhel declared
-%if 0%{?epel}
-%global bugs  https://bugzilla.redhat.com/enter_bug.cgi?product=Fedora%20EPEL&component=%{name}&version=epel%{epel}
-%else
-%if 0%{?fedora}
-# Does not work for rawhide, keeps the version field empty
-%global bugs  https://bugzilla.redhat.com/enter_bug.cgi?product=Fedora&component=%{name}&version=%{fedora}
-%else
-%if 0%{?rhel}
-%global bugs  https://bugzilla.redhat.com/enter_bug.cgi?product=Red%20Hat%20Enterprise%20Linux%20%{rhel}&component=%{name}
-%else
-%global bugs  https://bugzilla.redhat.com/enter_bug.cgi
-%endif
-%endif
-%endif
-
 # parametrized macros are order-sensitive
-%global compatiblename  java-%{majorver}-%{origin}
+%global compatiblename  java-%{featurever}-%{origin}
 %global fullversion     %{compatiblename}-%{version}-%{release}
 # images directories from upstream build
 %global jdkimage                jdk
@@ -386,10 +416,10 @@
 # and 32 bit architectures we place the tapsets under the arch
 # specific dir (note that systemtap will only pickup the tapset
 # for the primary arch for now). Systemtap uses the machine name
-# aka build_cpu as architecture specific directory name.
+# aka target_cpu as architecture specific directory name.
 %global tapsetroot /usr/share/systemtap
 %global tapsetdirttapset %{tapsetroot}/tapset/
-%global tapsetdir %{tapsetdirttapset}/%{_build_cpu}
+%global tapsetdir %{tapsetdirttapset}/%{stapinstall}
 %endif
 
 # not-duplicated scriptlets for normal/debug packages
@@ -942,7 +972,7 @@ Requires: ca-certificates
 # Require javapackages-filesystem for ownership of /usr/lib/jvm/ and macros
 Requires: javapackages-filesystem
 # Require zone-info data provided by tzdata-java sub-package
-# 2020a required as of JDK-8243541 in 11.0.8+4
+# 2020b required as of JDK-8254177 in October CPU
 Requires: tzdata-java >= 2020b
 # for support of kernel stream control
 # libsctp.so.1 is being `dlopen`ed on demand
@@ -1070,7 +1100,7 @@ Release: %{?eaprefix}%{rpmrelease}%{?extraver}%{?dist}
 # provides >= 1.6.0 must specify the epoch, "java >= 1:1.6.0".
 
 Epoch:   1
-Summary: %{origin_nice} Runtime Environment %{majorver}
+Summary: %{origin_nice} %{featurever} Runtime Environment
 
 # HotSpot code is licensed under GPLv2
 # JDK library code is licensed under GPLv2 with the Classpath exception
@@ -1092,7 +1122,7 @@ URL:      http://openjdk.java.net/
 
 # to regenerate source0 (jdk) run update_package.sh
 # update_package.sh contains hard-coded repos, revisions, tags, and projects to regenerate the source archives
-Source0: jdk-updates-jdk%{majorver}u-jdk-%{newjavaver}+%{buildver}%{?tagsuffix:-%{tagsuffix}}-4curve.tar.xz
+Source0: jdk-updates-jdk%{featurever}u-jdk-%{filever}+%{buildver}%{?tagsuffix:-%{tagsuffix}}-4curve.tar.xz
 
 # Use 'icedtea_sync.sh' to update the following
 # They are based on code contained in the IcedTea project (3.x).
@@ -1120,22 +1150,26 @@ Source14: TestECDSA.java
 # Verify system crypto (policy) can be disabled via a property
 Source15: TestSecurityProperties.java
 
+# Ensure vendor settings are correct
+Source16: CheckVendor.java
+
 ############################################
 #
 # RPM/distribution specific patches
 #
 ############################################
 
-# NSS via SunPKCS11 Provider (disabled comment
-# due to memory leak).
-Patch1000: rh1648249-add_commented_out_nss_cfg_provider_to_java_security.patch
-# enable build of speculative store bypass hardened alt-java
-Patch600: rh1750419-redhat_alt_java.patch
-
 # Ignore AWTError when assistive technologies are loaded
 Patch1:    rh1648242-accessible_toolkit_crash_do_not_break_jvm.patch
 # Restrict access to java-atk-wrapper classes
 Patch2:    rh1648644-java_access_bridge_privileged_security.patch
+# NSS via SunPKCS11 Provider (disabled due to memory leak).
+Patch1000: rh1648249-add_commented_out_nss_cfg_provider_to_java_security.patch
+# enable build of speculative store bypass hardened alt-java
+Patch600: rh1750419-redhat_alt_java.patch
+
+# RH1582504: Use RSA as default for keytool, as DSA is disabled in all crypto policies except LEGACY
+Patch1003: rh1842572-rsa_default_for_keytool.patch
 
 #############################################
 #
@@ -1147,8 +1181,11 @@ Patch2:    rh1648644-java_access_bridge_privileged_security.patch
 
 #############################################
 #
-# OpenJDK specific patches
+# Upstreamable patches
 #
+# This section includes patches which need to
+# be reviewed & pushed to the current development
+# tree of OpenJDK.
 #############################################
 
 Patch3:    rh649512-remove_uses_of_far_in_jpeg_libjpeg_turbo_1_4_compat_for_jdk10_and_up.patch
@@ -1166,12 +1203,6 @@ Patch7: pr3695-toggle_system_crypto_policy.patch
 # able to be removed once that release is out
 # and used by this RPM.
 #############################################
-# JDK-8222286: S390 ambiguous log2_intptr call
-Patch8: s390-8214206_fix.patch
-# JDK-8254177: (tz) Upgrade time-zone data to tzdata2020b
-Patch9: jdk8254177-tzdata2020b.patch
-# JDK-8250861: Crash in MinINode::Ideal(PhaseGVN*, bool)
-Patch10: jdk8250861-crash_in_MinINode_Ideal.patch
 
 BuildRequires: autoconf
 BuildRequires: automake
@@ -1186,6 +1217,7 @@ BuildRequires: freetype-devel
 BuildRequires: giflib-devel
 BuildRequires: gcc-c++
 BuildRequires: gdb
+BuildRequires: harfbuzz-devel
 BuildRequires: lcms2-devel
 BuildRequires: libjpeg-devel
 BuildRequires: libpng-devel
@@ -1223,254 +1255,260 @@ BuildRequires: systemtap-sdt-devel
 %{java_rpo %{nil}}
 
 %description
-The %{origin_nice} runtime environment %{majorver}.
+The %{origin_nice} %{featurever} runtime environment.
 
 %if %{include_debug_build}
 %package slowdebug
-Summary: %{origin_nice} Runtime Environment %{majorver} %{debug_on}
+Summary: %{origin_nice} %{featurever} Runtime Environment %{debug_on}
 
 %{java_rpo -- %{debug_suffix_unquoted}}
 %description slowdebug
-The %{origin_nice} runtime environment %{majorver}.
+The %{origin_nice} %{featurever} runtime environment.
 %{debug_warning}
 %endif
 
 %if %{include_fastdebug_build}
 %package fastdebug
-Summary: %{origin_nice} Runtime Environment %{majorver} %{fastdebug_on}
+Summary: %{origin_nice} %{featurever} Runtime Environment %{fastdebug_on}
 Group:   Development/Languages
 
 %{java_rpo -- %{fastdebug_suffix_unquoted}}
 %description fastdebug
-The %{origin_nice} runtime environment.
+The %{origin_nice} %{featurever} runtime environment.
 %{fastdebug_warning}
 %endif
 
 %if %{include_normal_build}
 %package headless
-Summary: %{origin_nice} Headless Runtime Environment %{majorver}
+Summary: %{origin_nice} %{featurever} Headless Runtime Environment
 
 %{java_headless_rpo %{nil}}
 
 %description headless
-The %{origin_nice} runtime environment %{majorver} without audio and video support.
+The %{origin_nice} %{featurever} runtime environment without audio and video support.
 %endif
 
 %if %{include_debug_build}
 %package headless-slowdebug
-Summary: %{origin_nice} Runtime Environment %{majorver} %{debug_on}
+Summary: %{origin_nice} %{featurever} Runtime Environment %{debug_on}
 
 %{java_headless_rpo -- %{debug_suffix_unquoted}}
 
 %description headless-slowdebug
-The %{origin_nice} runtime environment %{majorver} without audio and video support.
+The %{origin_nice} %{featurever} runtime environment without audio and video support.
 %{debug_warning}
 %endif
 
 %if %{include_fastdebug_build}
 %package headless-fastdebug
-Summary: %{origin_nice} Runtime Environment %{fastdebug_on}
+Summary: %{origin_nice} %{featurever} Runtime Environment %{fastdebug_on}
 Group:   Development/Languages
 
 %{java_headless_rpo -- %{fastdebug_suffix_unquoted}}
 
 %description headless-fastdebug
-The %{origin_nice} runtime environment %{majorver} without audio and video support.
+The %{origin_nice} %{featurever} runtime environment without audio and video support.
 %{fastdebug_warning}
 %endif
 
 %if %{include_normal_build}
 %package devel
-Summary: %{origin_nice} Development Environment %{majorver}
+Summary: %{origin_nice} %{featurever} Development Environment
 
 %{java_devel_rpo %{nil}}
 
 %description devel
-The %{origin_nice} development tools %{majorver}.
+The %{origin_nice} %{featurever} development tools.
 %endif
 
 %if %{include_debug_build}
 %package devel-slowdebug
-Summary: %{origin_nice} Development Environment %{majorver} %{debug_on}
+Summary: %{origin_nice} %{featurever} Development Environment %{debug_on}
 
 %{java_devel_rpo -- %{debug_suffix_unquoted}}
 
 %description devel-slowdebug
-The %{origin_nice} development tools %{majorver}.
+The %{origin_nice} %{featurever} development tools.
 %{debug_warning}
 %endif
 
 %if %{include_fastdebug_build}
 %package devel-fastdebug
-Summary: %{origin_nice} Development Environment %{majorver} %{fastdebug_on}
+Summary: %{origin_nice} %{featurever} Development Environment %{fastdebug_on}
 Group:   Development/Tools
 
 %{java_devel_rpo -- %{fastdebug_suffix_unquoted}}
 
 %description devel-fastdebug
-The %{origin_nice} development tools %{majorver}.
+The %{origin_nice} %{featurever} development tools.
 %{fastdebug_warning}
 %endif
 
 %if %{include_normal_build}
 %package static-libs
-Summary: %{origin_nice} libraries for static linking %{majorver}
+Summary: %{origin_nice} %{featurever} libraries for static linking
 
 %{java_static_libs_rpo %{nil}}
 
 %description static-libs
-The %{origin_nice} libraries for static linking %{majorver}.
+The %{origin_nice} %{featurever} libraries for static linking.
 %endif
 
 %if %{include_debug_build}
 %package static-libs-slowdebug
-Summary: %{origin_nice} libraries for static linking %{majorver} %{debug_on}
+Summary: %{origin_nice} %{featurever} libraries for static linking %{debug_on}
 
 %{java_static_libs_rpo -- %{debug_suffix_unquoted}}
 
 %description static-libs-slowdebug
-The %{origin_nice} libraries for static linking %{majorver}.
+The %{origin_nice} %{featurever} libraries for static linking.
 %{debug_warning}
 %endif
 
 %if %{include_fastdebug_build}
 %package static-libs-fastdebug
-Summary: %{origin_nice} libraries for static linking %{majorver} %{fastdebug_on}
+Summary: %{origin_nice} %{featurever} libraries for static linking %{fastdebug_on}
 
 %{java_static_libs_rpo -- %{fastdebug_suffix_unquoted}}
 
 %description static-libs-fastdebug
-The %{origin_nice} libraries for static linking %{majorver}.
+The %{origin_nice} %{featurever} libraries for static linking.
 %{fastdebug_warning}
 %endif
 
 %if %{include_normal_build}
 %package jmods
-Summary: JMods for %{origin_nice} %{majorver}
+Summary: JMods for %{origin_nice} %{featurever}
 
 %{java_jmods_rpo %{nil}}
 
 %description jmods
-The JMods for %{origin_nice}.
+The JMods for %{origin_nice} %{featurever}.
 %endif
 
 %if %{include_debug_build}
 %package jmods-slowdebug
-Summary: JMods for %{origin_nice} %{majorver} %{debug_on}
+Summary: JMods for %{origin_nice} %{featurever} %{debug_on}
 
 %{java_jmods_rpo -- %{debug_suffix_unquoted}}
 
 %description jmods-slowdebug
-The JMods for %{origin_nice} %{majorver}.
+The JMods for %{origin_nice} %{featurever}.
 %{debug_warning}
 %endif
 
 %if %{include_fastdebug_build}
 %package jmods-fastdebug
-Summary: JMods for %{origin_nice} %{majorver} %{fastdebug_on}
+Summary: JMods for %{origin_nice} %{featurever} %{fastdebug_on}
 Group:   Development/Tools
 
 %{java_jmods_rpo -- %{fastdebug_suffix_unquoted}}
 
 %description jmods-fastdebug
-The JMods for %{origin_nice} %{majorver}.
+The JMods for %{origin_nice} %{featurever}.
 %{fastdebug_warning}
 %endif
 
 
 %if %{include_normal_build}
 %package demo
-Summary: %{origin_nice} Demos %{majorver}
+Summary: %{origin_nice} %{featurever} Demos
 
 %{java_demo_rpo %{nil}}
 
 %description demo
-The %{origin_nice} demos %{majorver}.
+The %{origin_nice} %{featurever} demos.
 %endif
 
 %if %{include_debug_build}
 %package demo-slowdebug
-Summary: %{origin_nice} Demos %{majorver} %{debug_on}
+Summary: %{origin_nice} %{featurever} Demos %{debug_on}
 
 %{java_demo_rpo -- %{debug_suffix_unquoted}}
 
 %description demo-slowdebug
-The %{origin_nice} demos %{majorver}.
+The %{origin_nice} %{featurever} demos.
 %{debug_warning}
 %endif
 
 %if %{include_fastdebug_build}
 %package demo-fastdebug
-Summary: %{origin_nice} Demos %{majorver} %{fastdebug_on}
+Summary: %{origin_nice} %{featurever} Demos %{fastdebug_on}
 Group:   Development/Languages
 
 %{java_demo_rpo -- %{fastdebug_suffix_unquoted}}
 
 %description demo-fastdebug
-The %{origin_nice} demos %{majorver}.
+The %{origin_nice} %{featurever} demos.
 %{fastdebug_warning}
 %endif
 
 %if %{include_normal_build}
 %package src
-Summary: %{origin_nice} Source Bundle %{majorver}
+Summary: %{origin_nice} %{featurever} Source Bundle
 
 %{java_src_rpo %{nil}}
 
 %description src
-The java-%{origin}-src sub-package contains the complete %{origin_nice} %{majorver}
+The %{compatiblename}-src sub-package contains the complete %{origin_nice} %{featurever}
 class library source code for use by IDE indexers and debuggers.
 %endif
 
 %if %{include_debug_build}
 %package src-slowdebug
-Summary: %{origin_nice} Source Bundle %{majorver} %{for_debug}
+Summary: %{origin_nice} %{featurever} Source Bundle %{for_debug}
 
 %{java_src_rpo -- %{debug_suffix_unquoted}}
 
 %description src-slowdebug
-The java-%{origin}-src-slowdebug sub-package contains the complete %{origin_nice} %{majorver}
- class library source code for use by IDE indexers and debuggers. Debugging %{for_debug}.
+The %{compatiblename}-src-slowdebug sub-package contains the complete %{origin_nice} %{featurever}
+ class library source code for use by IDE indexers and debuggers, %{for_debug}.
 %endif
 
 %if %{include_fastdebug_build}
 %package src-fastdebug
-Summary: %{origin_nice} Source Bundle %{majorver} %{for_fastdebug}
+Summary: %{origin_nice} %{featurever} Source Bundle %{for_fastdebug}
 Group:   Development/Languages
 
 %{java_src_rpo -- %{fastdebug_suffix_unquoted}}
 
 %description src-fastdebug
-The java-%{origin}-src-fastdebug sub-package contains the complete %{origin_nice} %{majorver}
- class library source code for use by IDE indexers and debuggers. Debugging %{for_fastdebug}.
+The %{compatiblename}-src-fastdebug sub-package contains the complete %{origin_nice} %{featurever}
+ class library source code for use by IDE indexers and debuggers, %{for_fastdebug}.
 %endif
 
 
 %if %{include_normal_build}
 %package javadoc
-Summary: %{origin_nice} %{majorver} API documentation
+Summary: %{origin_nice} %{featurever} API documentation
 Requires: javapackages-filesystem
 Obsoletes: javadoc-slowdebug < 1:11.0.3.7-4
 
 %{java_javadoc_rpo %{nil}}
 
 %description javadoc
-The %{origin_nice} %{majorver} API documentation.
-%endif
+The %{origin_nice} %{featurever} API documentation.
 
-%if %{include_normal_build}
 %package javadoc-zip
-Summary: %{origin_nice} %{majorver} API documentation compressed in a single archive
+Summary: %{origin_nice} %{featurever} API documentation compressed in a single archive
 Requires: javapackages-filesystem
 Obsoletes: javadoc-zip-slowdebug < 1:11.0.3.7-4
 
 %{java_javadoc_rpo %{nil}}
 
 %description javadoc-zip
-The %{origin_nice} %{majorver} API documentation compressed in a single archive.
+The %{origin_nice} %{featurever} API documentation compressed in a single archive.
 %endif
 
 %prep
+
+# Using the echo macro breaks rpmdev-bumpspec, as it parses the first line of stdout :-(
+%if 0%{?stapinstall:1}
+  echo "CPU: %{_target_cpu}, arch install directory: %{archinstall}, SystemTap install directory: %{stapinstall}"
+%else
+  %{error:Unrecognised architecture %{_target_cpu}}
+%endif
+
 if [ %{include_normal_build} -eq 0 -o  %{include_normal_build} -eq 1 ] ; then
   echo "include_normal_build is %{include_normal_build}"
 else
@@ -1515,13 +1553,11 @@ pushd %{top_level_dir_name}
 %patch3 -p1
 %patch4 -p1
 %patch7 -p1
-%patch8 -p1
-%patch9 -p1
-%patch10 -p1
 popd # openjdk
 
 %patch1000
 %patch600
+%patch1003
 
 # Extract systemtap tapsets
 %if %{with_systemtap}
@@ -1627,13 +1663,11 @@ bash ../configure \
     --with-version-build=%{buildver} \
     --with-version-pre="%{ea_designator}" \
     --with-version-opt=%{lts_designator} \
-    --with-version-patch=1 \
-    --with-version-date="2020-11-04" \
     --with-vendor-version-string="%{vendor_version_string}" \
-    --with-vendor-name="Red Hat, Inc." \
-    --with-vendor-url="https://www.redhat.com/" \
-    --with-vendor-bug-url="%{bugs}" \
-    --with-vendor-vm-bug-url="%{bugs}" \
+    --with-vendor-name="%{oj_vendor}" \
+    --with-vendor-url="%{oj_vendor_url}" \
+    --with-vendor-bug-url="%{oj_vendor_bug_url}" \
+    --with-vendor-vm-bug-url="%{oj_vendor_bug_url}" \
     --with-boot-jdk=/usr/lib/jvm/java-%{buildjdkver}-openjdk \
     --with-debug-level=$debugbuild \
     --with-native-debug-symbols=internal \
@@ -1643,6 +1677,7 @@ bash ../configure \
     --with-giflib=system \
     --with-libpng=system \
     --with-lcms=system \
+    --with-harfbuzz=system \
     --with-stdc++lib=dynamic \
     --with-extra-cxxflags="$EXTRA_CPP_FLAGS" \
     --with-extra-cflags="$EXTRA_CFLAGS" \
@@ -1721,6 +1756,10 @@ $JAVA_HOME/bin/java $(echo $(basename %{SOURCE14})|sed "s|\.java||")
 # Check system crypto (policy) can be disabled
 $JAVA_HOME/bin/javac -d . %{SOURCE15}
 $JAVA_HOME/bin/java -Djava.security.disableSystemPropertiesFile=true $(echo $(basename %{SOURCE15})|sed "s|\.java||")
+
+# Check correct vendor values have been set
+$JAVA_HOME/bin/javac -d . %{SOURCE16}
+$JAVA_HOME/bin/java $(echo $(basename %{SOURCE16})|sed "s|\.java||") "%{oj_vendor}" %{oj_vendor_url} %{oj_vendor_bug_url}
 
 # Check java launcher has no SSB mitigation
 if ! nm $JAVA_HOME/bin/java | grep set_speculation ; then true ; else false; fi
@@ -1883,8 +1922,9 @@ if ! echo $suffix | grep -q "debug" ; then
   # Install Javadoc documentation
   install -d -m 755 $RPM_BUILD_ROOT%{_javadocdir}
   cp -a %{buildoutputdir -- $suffix}/images/docs $RPM_BUILD_ROOT%{_javadocdir}/%{uniquejavadocdir -- $suffix}
-  #cp -a %{buildoutputdir -- $suffix}/bundles/jdk-%{newjavaver}%{ea_designator_zip}+%{buildver}%{lts_designator_zip}-docs.zip $RPM_BUILD_ROOT%{_javadocdir}/%{uniquejavadocdir -- $suffix}.zip  || ls -l %{buildoutputdir -- $suffix}/bundles/
-  cp -a %{buildoutputdir -- $suffix}/bundles/jdk-11.0.9.1+11-docs.zip $RPM_BUILD_ROOT%{_javadocdir}/%{uniquejavadocdir -- $suffix}.zip || ls -l %{buildoutputdir -- $suffix}/bundles/
+  built_doc_archive=jdk-%{filever}%{ea_designator_zip}+%{buildver}%{lts_designator_zip}-docs.zip
+  cp -a %{buildoutputdir -- $suffix}/bundles/${built_doc_archive} \
+     $RPM_BUILD_ROOT%{_javadocdir}/%{uniquejavadocdir -- $suffix}.zip || ls -l %{buildoutputdir -- $suffix}/bundles/
 fi
 
 # Install release notes
@@ -2157,11 +2197,34 @@ require "copy_jdk_configs.lua"
 %endif
 
 %changelog
+* Mon Feb  1 2021 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.10.0.9-0
+- Update to jdk-11.0.10.0+9
+- Update release notes to 11.0.10.0+9
+- Use JEP-322 Time-Based Versioning so we can handle a future 11.0.9.1-like release correctly.
+- Still use 11.0.x rather than 11.0.x.0 for file naming, as the trailing zero is omitted from tags.
+- Revert configure and built_doc_archive hacks to build 11.0.9.1 from 11.0.9.0 sources, and synced with RHEL version.
+- Drop JDK-8250861, JDK-8222286 & JDK-8254177 as applied upstream
+- Use system harfbuzz now this is supported.
+- Update tarball generation script to use PR3818 which handles JDK-8171279 changes
+- Use RSA as default for keytool, as DSA is disabled in all crypto policies except LEGACY
+- Adjust RH1842572 RSA default patch due to context change from JDK-8213400
+- Following JDK-8005165, class data sharing can be enabled on all JIT architectures
+- Introduce stapinstall variable to set SystemTap arch directory correctly (e.g. arm64 on aarch64)
+- Need to support noarch for creating source RPMs for non-scratch builds.
+- Include a test in the RPM to check the build has the correct vendor information.
+- Update build documentation to reflect this is java-11-openjdk, not java-1.8.0-openjdk
+- Cleanup debug package descriptions and version number placement.
+- Remove redundant closure and immediate reopening of include_normal_build block.
+- Fix location and comment differences from RHEL.
+- Introduced nm based check to verify alt-java on x86_64 is patched, and no other alt-java or java is patched
+- Patch600 rh1750419-redhat_alt_java.patch amended to die, if it is used wrongly
+- Introduce ssbd_arches with currently only valid arch of x86_64 to separate real alt-java architectures
+
 * Tue Dec 22 2020 Jiri Vanek <jvanek@redhat.com> - 1:11.0.9.11-9
-- fixed missing condition for fastdebug packages being counted as debug ones
+- Fixed missing condition for fastdebug packages being counted as debug ones
 
 * Sat Dec 19 2020 Jiri Vanek <jvanek@redhat.com> - 1:11.0.9.11-8
-- removed lib-style provides for fastdebug_suffix_unquoted
+- Removed lib-style provides for fastdebug_suffix_unquoted
 
 * Thu Dec 17 2020 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.9.11-6
 - introduced nm based check to verify alt-java on x86_64 is patched, and no other alt-java or java is patched
@@ -2169,9 +2232,9 @@ require "copy_jdk_configs.lua"
 - introduced ssbd_arches with currently only valid arch of x86_64 to separate real alt-java architectures
 
 * Tue Dec 01 2020 Jiri Vanek <jvanek@redhat.com> - 1:11.0.9.11-5
-- removed patch6, rh1566890-CVE_2018_3639-speculative_store_bypass.patch, surpassed by new patch
-- added patch600, rh1750419-redhat_alt_java.patch, suprassing removed patch
-- no longer copying of java->alt-java as it is created by  patch600
+- Removed patch6, rh1566890-CVE_2018_3639-speculative_store_bypass.patch, surpassed by new patch
+- Added patch600, rh1750419-redhat_alt_java.patch, suprassing removed patch
+- No longer copying of java->alt-java as it is created by  patch600
 
 * Mon Nov 23 2020 Jiri Vanek <jvanek@redhat.com> - 1:11.0.9.11-4
 - Create a copy of java as alt-java with alternatives and man pages
