@@ -344,7 +344,7 @@
 %global origin_nice     OpenJDK
 %global top_level_dir_name   %{origin}
 %global top_level_dir_name_backup %{top_level_dir_name}-backup
-%global buildver        7
+%global buildver        9
 %global rpmrelease      0
 #%%global tagsuffix      ""
 # Priority must be 8 digits in total; up to openjdk 1.8, we were using 18..... so when we moved to 11, we had to add another digit
@@ -374,7 +374,7 @@
 # Release will be (where N is usually a number starting at 1):
 # - 0.N%%{?extraver}%%{?dist} for EA releases,
 # - N%%{?extraver}{?dist} for GA releases
-%global is_ga           0
+%global is_ga           1
 %if %{is_ga}
 %global ea_designator ""
 %global ea_designator_zip ""
@@ -1006,16 +1006,18 @@ Requires: ca-certificates
 # Require javapackages-filesystem for ownership of /usr/lib/jvm/ and macros
 Requires: javapackages-filesystem
 # Require zone-info data provided by tzdata-java sub-package
-# 2020f required as of JDK-8259048 in October CPU
-Requires: tzdata-java >= 2020f
+# 2021a required as of JDK-8260356 in April 2021 CPU
+Requires: tzdata-java >= 2021a
 # for support of kernel stream control
 # libsctp.so.1 is being `dlopen`ed on demand
 Requires: lksctp-tools%{?_isa}
+%if ! 0%{?flatpak}
 # tool to copy jdk's configs - should be Recommends only, but then only dnf/yum enforce it,
 # not rpm transaction and so no configs are persisted when pure rpm -u is run. It may be
 # considered as regression
 Requires: copy-jdk-configs >= 3.3
 OrderWithRequires: copy-jdk-configs
+%endif
 # for printing support
 Requires: cups-libs
 # Post requires alternatives to install tool alternatives
@@ -1275,8 +1277,8 @@ BuildRequires: java-%{buildjdkver}-openjdk-devel
 %ifnarch %{jit_arches}
 BuildRequires: libffi-devel
 %endif
-# 2020f required as of JDK-8259048 in October CPU
-BuildRequires: tzdata-java >= 2020f
+# 2021a required as of JDK-8260356 in April 2021 CPU
+BuildRequires: tzdata-java >= 2021a
 # Earlier versions have a bug in tree vectorization on PPC
 BuildRequires: gcc >= 4.8.3-8
 
@@ -2283,6 +2285,15 @@ require "copy_jdk_configs.lua"
 %endif
 
 %changelog
+* Wed Apr 21 2021 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.11.0.9-0
+- Update to jdk-11.0.11.0+9
+- Update release notes to 11.0.11.0+9
+- Switch to GA mode for final release.
+- Require tzdata 2021a to match upstream change JDK-8260356
+
+* Tue Apr 20 2021 Stephan Bergmann <sbergman@redhat.com> - 1:11.0.11.0.9-0
+- Disable copy-jdk-configs for Flatpak builds
+
 * Sun Apr 11 2021 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.11.0.7-0.0.ea
 - Update to jdk-11.0.11.0+7
 - Update release notes to 11.0.11.0+7
