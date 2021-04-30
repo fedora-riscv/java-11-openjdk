@@ -2299,7 +2299,7 @@ cjc.mainProgram(args)
 - Remove -fcommon work-around as the OpenJDK 11
   code has been fixed.
 
-* Fri Apr 29 2021 Jiri Vanek <jvanek@redhat.com> - 1:11.0.11.0.9-1
+* Fri Apr 30 2021 Jiri Vanek <jvanek@redhat.com> - 1:11.0.11.0.9-1
 - adapted to debug handling  in newer cjc
 - The rest of the "rpm 4.17" patch must NOT be backported, as on rpm 4.16 and down, it would casue double execution
 
