@@ -345,7 +345,7 @@
 %global top_level_dir_name   %{origin}
 %global top_level_dir_name_backup %{top_level_dir_name}-backup
 %global buildver        9
-%global rpmrelease      1
+%global rpmrelease      2
 #%%global tagsuffix      ""
 # Priority must be 8 digits in total; up to openjdk 1.8, we were using 18..... so when we moved to 11, we had to add another digit
 %if %is_system_jdk
@@ -1015,7 +1015,7 @@ Requires: lksctp-tools%{?_isa}
 # tool to copy jdk's configs - should be Recommends only, but then only dnf/yum enforce it,
 # not rpm transaction and so no configs are persisted when pure rpm -u is run. It may be
 # considered as regression
-Requires: copy-jdk-configs >= 3.3
+Requires: copy-jdk-configs >= 4.0
 OrderWithRequires: copy-jdk-configs
 %endif
 # for printing support
@@ -2103,9 +2103,10 @@ else
   return
   end
 end
--- run content of included file with fake args
-arg = {"--currentjvm", "%{uniquesuffix %{nil}}", "--jvmdir", "%{_jvmdir %{nil}}", "--origname", "%{name}", "--origjavaver", "%{javaver}", "--arch", "%{_arch}", "--temp", "%{rpm_state_dir}/%{name}.%{_arch}"}
-require "copy_jdk_configs.lua"
+arg = nil ;  -- it is better to null the arg up, no meter if they exists or not, and use cjc as module in unified way, instead of relaying on "main" method during require "copy_jdk_configs.lua"
+cjc = require "copy_jdk_configs.lua"
+args = {"--currentjvm", "%{uniquesuffix %{nil}}", "--jvmdir", "%{_jvmdir %{nil}}", "--origname", "%{name}", "--origjavaver", "%{javaver}", "--arch", "%{_arch}", "--temp", "%{rpm_state_dir}/%{name}.%{_arch}"}
+cjc.mainProgram(args)
 
 %post
 %{post_script %{nil}}
@@ -2292,6 +2293,9 @@ require "copy_jdk_configs.lua"
 %endif
 
 %changelog
+* Fri May 07 2021 Jiri Vanek <jvanek@redhat.com> - 1:11.0.11.0.9-2
+- removed cjc backward comaptiblity, to fix when both rpm 4.16 and 4.17 are in transaction
+
 * Fri Apr 29 2021 Jiri Vanek <jvanek@redhat.com> - 1:11.0.11.0.9-1
 - adapted to debug handling  in newer cjc
 - The rest of the "rpm 4.17" patch must NOT be backported, as on rpm 4.16 and down, it would casue double execution
