@@ -176,10 +176,8 @@
 %endif
 
 # If you disable both builds, then the build fails
-# Note that the debug build requires the normal build for docs
-%global build_loop %{normal_build} %{fastdebug_build} %{slowdebug_build}
-# Test slowdebug first as it provides the best diagnostics
-%global rev_build_loop  %{slowdebug_build} %{fastdebug_build} %{normal_build}
+# Build and test slowdebug first as it provides the best diagnostics
+%global build_loop  %{slowdebug_build} %{fastdebug_build} %{normal_build}
 
 %if %{include_staticlibs}
 %global staticlibs_loop %{staticlibs_suffix}
@@ -297,7 +295,7 @@
 # New Version-String scheme-style defines
 %global featurever 11
 %global interimver 0
-%global updatever 11
+%global updatever 12
 %global patchver 0
 # If you bump featurever, you must bump also vendor_version_string
 # Used via new version scheme. JDK 11 was
@@ -344,8 +342,8 @@
 %global origin_nice     OpenJDK
 %global top_level_dir_name   %{origin}
 %global top_level_dir_name_backup %{top_level_dir_name}-backup
-%global buildver        9
-%global rpmrelease      5
+%global buildver        6
+%global rpmrelease      0
 #%%global tagsuffix      ""
 # Priority must be 8 digits in total; up to openjdk 1.8, we were using 18..... so when we moved to 11, we had to add another digit
 %if %is_system_jdk
@@ -374,7 +372,7 @@
 # Release will be (where N is usually a number starting at 1):
 # - 0.N%%{?extraver}%%{?dist} for EA releases,
 # - N%%{?extraver}{?dist} for GA releases
-%global is_ga           1
+%global is_ga           0
 %if %{is_ga}
 %global ea_designator ""
 %global ea_designator_zip ""
@@ -1588,10 +1586,6 @@ if [ %{include_debug_build} -eq 0 -a  %{include_normal_build} -eq 0 -a  %{includ
   echo "You have disabled all builds (normal,fastdebug,slowdebug). That is a no go."
   exit 14
 fi
-if [ %{include_normal_build} -eq 0 ] ; then
-  echo "You have disabled the normal build, but this is required to provide docs for the debug build."
-  exit 15
-fi
 %setup -q -c -n %{uniquesuffix ""} -T -a 0
 # https://bugzilla.redhat.com/show_bug.cgi?id=1189084
 prioritylength=`expr length %{priority}`
@@ -1831,7 +1825,7 @@ done # end of release / debug cycle loop
 %check
 
 # We test debug first as it will give better diagnostics on a crash
-for suffix in %{rev_build_loop} ; do
+for suffix in %{build_loop} ; do
 
 top_dir_abs_main_build_path=$(pwd)/%{buildoutputdir -- ${suffix}%{main_suffix}}
 %if %{include_staticlibs}
@@ -2319,6 +2313,15 @@ cjc.mainProgram(args)
 %endif
 
 %changelog
+* Thu Jul 08 2021 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.12.0.6-0.0.ea
+- Update to jdk-11.0.12.0+6
+- Update release notes to 11.0.12.0+6
+- Correct bug ID JDK-8264846 to intended ID of JDK-8264848
+- Switch to EA mode for 11.0.12 pre-release builds.
+- Update ECC patch following JDK-8226374 (bug ID yet to be confirmed)
+- Use the "reverse" build loop (debug first) as the main and only build loop to get more diagnostics.
+- Remove restriction on disabling product build, as debug packages no longer have javadoc packages.
+
 * Tue Jun 08 2021 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.11.0.9-5
 - Minor code cleanups on FIPS detection patch and check for SECMOD_GetSystemFIPSEnabled in configure.
 - Remove unneeded Requires on NSS as it will now be dynamically linked and detected by RPM.
