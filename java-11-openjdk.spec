@@ -12,10 +12,7 @@
 #
 # Only produce a release build on x86_64:
 # $ fedpkg mockbuild --without slowdebug --without fastdebug
-#
-# Only produce a debug build on x86_64:
-# $ fedpkg local --without release
-#
+
 # Enable fastdebug builds by default on relevant arches.
 %bcond_without fastdebug
 # Enable slowdebug builds by default on relevant arches.
@@ -55,11 +52,11 @@
 %global staticlibs_suffix "%{staticlibs_suffix_unquoted}"
 
 %global debug_warning This package is unoptimised with full debugging. Install only as needed and remove ASAP.
-%global debug_on with full debugging on
-%global fastdebug_on with minimal debugging on
 %global fastdebug_warning This package is optimised with full debugging. Install only as needed and remove ASAP.
-%global for_fastdebug for packages with minimal debugging on
-%global for_debug for packages with debugging on
+%global debug_on unoptimised with full debugging on
+%global fastdebug_on optimised with full debugging on
+%global for_fastdebug for packages with debugging on and optimisation
+%global for_debug for packages with debugging on and no optimisation
 
 %if %{with release}
 %global include_normal_build 1
@@ -177,7 +174,7 @@
 
 # If you disable both builds, then the build fails
 # Build and test slowdebug first as it provides the best diagnostics
-%global build_loop  %{slowdebug_build} %{fastdebug_build} %{normal_build}
+%global build_loop %{slowdebug_build} %{fastdebug_build} %{normal_build}
 
 %if %{include_staticlibs}
 %global staticlibs_loop %{staticlibs_suffix}
@@ -191,21 +188,24 @@
 %global bootstrap_build 1
 %endif
 
-%if %{bootstrap_build}
-%global release_targets bootcycle-images docs-zip
-%else
-%global release_targets images docs-zip
-%endif
-# No docs nor bootcycle for debug builds
-%global debug_targets images
-
 %if %{include_staticlibs}
 # Extra target for producing the static-libraries. Separate from
 # other targets since this target is configured to use in-tree
 # AWT dependencies: lcms, libjpeg, libpng, libharfbuzz, giflib
 # and possibly others
 %global static_libs_target static-libs-image
+%else
+%global static_libs_target %{nil}
 %endif
+
+# RPM JDK builds keep the debug symbols internal, to be later stripped by RPM
+%global debug_symbols internal
+
+# unlike portables,the rpms have to use static_libs_target very dynamically
+%global bootstrap_targets images
+%global release_targets images docs-zip
+# No docs nor bootcycle for debug builds
+%global debug_targets images
 
 # Disable LTO as this causes build failures at the moment.
 # See RHBZ#1861401
@@ -295,7 +295,7 @@
 # New Version-String scheme-style defines
 %global featurever 11
 %global interimver 0
-%global updatever 12
+%global updatever 13
 %global patchver 0
 # If you bump featurever, you must bump also vendor_version_string
 # Used via new version scheme. JDK 11 was
@@ -342,9 +342,9 @@
 %global origin_nice     OpenJDK
 %global top_level_dir_name   %{origin}
 %global top_level_dir_name_backup %{top_level_dir_name}-backup
-%global buildver        7
-%global rpmrelease      4
-#%%global tagsuffix      ""
+%global buildver        8
+%global rpmrelease      1
+#%%global tagsuffix     %%{nil}
 # Priority must be 8 digits in total; up to openjdk 1.8, we were using 18..... so when we moved to 11, we had to add another digit
 %if %is_system_jdk
 # Using 10 digits may overflow the int used for priority, so we combine the patch and build versions
@@ -357,7 +357,7 @@
 # for techpreview, using 1, so slowdebugs can have 0
 %global priority %( printf '%08d' 1 )
 %endif
-%global newjavaver      %{featurever}.%{interimver}.%{updatever}.%{patchver}
+%global newjavaver %{featurever}.%{interimver}.%{updatever}.%{patchver}
 
 # Omit trailing 0 in filenames when the patch version is 0
 %if 0%{?patchver} > 0
@@ -620,7 +620,7 @@ alternatives \\
   --slave %{_mandir}/man1/rmic.1$ext rmic.1$ext \\
   %{_mandir}/man1/rmic-%{uniquesuffix -- %{?1}}.1$ext \\
   --slave %{_mandir}/man1/serialver.1$ext serialver.1$ext \\
-  %{_mandir}/man1/serialver-%{uniquesuffix -- %{?1}}.1$ext
+  %{_mandir}/man1/serialver-%{uniquesuffix -- %{?1}}.1$ext \\
 
 for X in %{origin} %{javaver} ; do
   alternatives \\
@@ -807,7 +807,7 @@ exit 0
 %config(noreplace) %{etcjavadir -- %{?1}}/conf/security/nss.cfg
 %config(noreplace) %{etcjavadir -- %{?1}}/conf/security/nss.fips.cfg
 %config(noreplace) %{etcjavadir -- %{?1}}/conf/management/jmxremote.access
-# these are config templates, thus not config-noreplace
+# This is a config template, and thus not config-noreplace
 %config  %{etcjavadir -- %{?1}}/conf/management/jmxremote.password.template
 %config(noreplace) %{etcjavadir -- %{?1}}/conf/management/management.properties
 %config(noreplace) %{etcjavadir -- %{?1}}/conf/net.properties
@@ -831,6 +831,10 @@ exit 0
 %ghost %{_jvmdir}/jre-%{javaver}-%{origin}
 %endif
 %endif
+# https://bugzilla.redhat.com/show_bug.cgi?id=1820172
+# https://docs.fedoraproject.org/en-US/packaging-guidelines/Directory_Replacement/
+%ghost %{_jvmdir}/%{sdkdir -- %{?1}}/conf.rpmmoved
+%ghost %{_jvmdir}/%{sdkdir -- %{?1}}/lib/security.rpmmoved
 }
 
 %define files_devel() %{expand:
@@ -985,7 +989,9 @@ Requires: libXcomposite%{?_isa}
 Requires: %{name}-headless%{?1}%{?_isa} = %{epoch}:%{version}-%{release}
 OrderWithRequires: %{name}-headless%{?1}%{?_isa} = %{epoch}:%{version}-%{release}
 # for java-X-openjdk package's desktop binding
+%if 0%{?rhel} >= 8
 Recommends: gtk3%{?_isa}
+%endif
 
 Provides: java-%{javaver}-%{origin}%{?1} = %{epoch}:%{version}-%{release}
 
@@ -1026,7 +1032,9 @@ Requires(post):   %{alternatives_requires}
 # Postun requires alternatives to uninstall tool alternatives
 Requires(postun): %{alternatives_requires}
 # for optional support of kernel stream control, card reader and printing bindings
+%if 0%{?rhel} >= 8
 Suggests: lksctp-tools%{?_isa}, pcsc-lite-devel%{?_isa}
+%endif
 
 # Standard JPackage base provides
 Provides: jre-%{javaver}-%{origin}-headless%{?1} = %{epoch}:%{version}-%{release}
@@ -1056,9 +1064,9 @@ Provides: java-sdk-%{javaver}%{?1} = %{epoch}:%{version}-%{release}
 Provides: java-%{javaver}-devel%{?1} = %{epoch}:%{version}-%{release}
 Provides: java-%{javaver}-%{origin}-devel%{?1} = %{epoch}:%{version}-%{release}
 %if %is_system_jdk
+Provides: java-devel-%{origin}%{?1} = %{epoch}:%{version}-%{release}
 Provides: java-sdk-%{origin}%{?1} = %{epoch}:%{version}-%{release}
 Provides: java-devel%{?1} = %{epoch}:%{version}-%{release}
-Provides: java-%{origin}-devel%{?1} = %{epoch}:%{version}-%{release}
 Provides: java-sdk%{?1} = %{epoch}:%{version}-%{release}
 %endif
 }
@@ -1138,6 +1146,9 @@ Release: %{?eaprefix}%{rpmrelease}%{?extraver}%{?dist}
 
 Epoch:   1
 Summary: %{origin_nice} %{featurever} Runtime Environment
+%if 0%{?rhel} <= 8
+Group:   Development/Languages
+%endif
 
 # HotSpot code is licensed under GPLv2
 # JDK library code is licensed under GPLv2 with the Classpath exception
@@ -1159,7 +1170,7 @@ URL:      http://openjdk.java.net/
 
 # to regenerate source0 (jdk) run update_package.sh
 # update_package.sh contains hard-coded repos, revisions, tags, and projects to regenerate the source archives
-Source0: jdk-updates-jdk%{featurever}u-jdk-%{filever}+%{buildver}%{?tagsuffix:-%{tagsuffix}}-4curve-clean.tar.xz
+Source0: jdk-updates-jdk%{featurever}u-jdk-%{filever}+%{buildver}%{?tagsuffix:-%{tagsuffix}}-4curve.tar.xz
 
 # Use 'icedtea_sync.sh' to update the following
 # They are based on code contained in the IcedTea project (6.x).
@@ -1205,7 +1216,7 @@ Patch1:    rh1648242-accessible_toolkit_crash_do_not_break_jvm.patch
 Patch2:    rh1648644-java_access_bridge_privileged_security.patch
 # NSS via SunPKCS11 Provider (disabled due to memory leak).
 Patch1000: rh1648249-add_commented_out_nss_cfg_provider_to_java_security.patch
-# enable build of speculative store bypass hardened alt-java
+# RH1750419: enable build of speculative store bypass hardened alt-java (CVE-2018-3639)
 Patch600: rh1750419-redhat_alt_java.patch
 # RH1582504: Use RSA as default for keytool, as DSA is disabled in all crypto policies except LEGACY
 Patch1003: rh1842572-rsa_default_for_keytool.patch
@@ -1221,6 +1232,11 @@ Patch1004: rh1860986-disable_tlsv1.3_in_fips_mode.patch
 Patch1007: rh1915071-always_initialise_configurator_access.patch
 # RH1929465: Improve system FIPS detection
 Patch1008: rh1929465-improve_system_FIPS_detection.patch
+# RH1996182: Login to the NSS software token in FIPS mode
+Patch1009: rh1996182-login_to_nss_software_token.patch
+Patch1010: rh1996182-extend_security_policy.patch
+# RH1991003: Allow plain key import unless com.redhat.fips.plainKeySupport is set to false
+Patch1011: rh1991003-enable_fips_keys_import.patch
 
 #############################################
 #
@@ -1254,8 +1270,6 @@ Patch7: pr3695-toggle_system_crypto_policy.patch
 # able to be removed once that release is out
 # and used by this RPM.
 #############################################
-# JDK-8269668, RH1977671: [aarch64] java.library.path not including /usr/lib64
-Patch8: jdk8269668-rh1977671-aarch64_lib_path_fix.patch
 
 BuildRequires: autoconf
 BuildRequires: automake
@@ -1313,6 +1327,9 @@ The %{origin_nice} %{featurever} runtime environment.
 %if %{include_debug_build}
 %package slowdebug
 Summary: %{origin_nice} %{featurever} Runtime Environment %{debug_on}
+%if 0%{?rhel} <= 8
+Group:   Development/Languages
+%endif
 
 %{java_rpo -- %{debug_suffix_unquoted}}
 %description slowdebug
@@ -1323,7 +1340,9 @@ The %{origin_nice} %{featurever} runtime environment.
 %if %{include_fastdebug_build}
 %package fastdebug
 Summary: %{origin_nice} %{featurever} Runtime Environment %{fastdebug_on}
+%if 0%{?rhel} <= 8
 Group:   Development/Languages
+%endif
 
 %{java_rpo -- %{fastdebug_suffix_unquoted}}
 %description fastdebug
@@ -1334,6 +1353,9 @@ The %{origin_nice} %{featurever} runtime environment.
 %if %{include_normal_build}
 %package headless
 Summary: %{origin_nice} %{featurever} Headless Runtime Environment
+%if 0%{?rhel} <= 8
+Group:   Development/Languages
+%endif
 
 %{java_headless_rpo %{nil}}
 
@@ -1344,6 +1366,7 @@ The %{origin_nice} %{featurever} runtime environment without audio and video sup
 %if %{include_debug_build}
 %package headless-slowdebug
 Summary: %{origin_nice} %{featurever} Runtime Environment %{debug_on}
+Group:   Development/Languages
 
 %{java_headless_rpo -- %{debug_suffix_unquoted}}
 
@@ -1367,6 +1390,9 @@ The %{origin_nice} %{featurever} runtime environment without audio and video sup
 %if %{include_normal_build}
 %package devel
 Summary: %{origin_nice} %{featurever} Development Environment
+%if 0%{?rhel} <= 8
+Group:   Development/Languages
+%endif
 
 %{java_devel_rpo %{nil}}
 
@@ -1377,6 +1403,9 @@ The %{origin_nice} %{featurever} development tools.
 %if %{include_debug_build}
 %package devel-slowdebug
 Summary: %{origin_nice} %{featurever} Development Environment %{debug_on}
+%if 0%{?rhel} <= 8
+Group:   Development/Languages
+%endif
 
 %{java_devel_rpo -- %{debug_suffix_unquoted}}
 
@@ -1437,6 +1466,9 @@ The %{origin_nice} %{featurever} libraries for static linking.
 %if %{include_normal_build}
 %package jmods
 Summary: JMods for %{origin_nice} %{featurever}
+%if 0%{?rhel} <= 8
+Group:   Development/Languages
+%endif
 
 %{java_jmods_rpo %{nil}}
 
@@ -1447,6 +1479,9 @@ The JMods for %{origin_nice} %{featurever}.
 %if %{include_debug_build}
 %package jmods-slowdebug
 Summary: JMods for %{origin_nice} %{featurever} %{debug_on}
+%if 0%{?rhel} <= 8
+Group:   Development/Languages
+%endif
 
 %{java_jmods_rpo -- %{debug_suffix_unquoted}}
 
@@ -1467,10 +1502,12 @@ The JMods for %{origin_nice} %{featurever}.
 %{fastdebug_warning}
 %endif
 
-
 %if %{include_normal_build}
 %package demo
 Summary: %{origin_nice} %{featurever} Demos
+%if 0%{?rhel} <= 8
+Group:   Development/Languages
+%endif
 
 %{java_demo_rpo %{nil}}
 
@@ -1481,6 +1518,9 @@ The %{origin_nice} %{featurever} demos.
 %if %{include_debug_build}
 %package demo-slowdebug
 Summary: %{origin_nice} %{featurever} Demos %{debug_on}
+%if 0%{?rhel} <= 8
+Group:   Development/Languages
+%endif
 
 %{java_demo_rpo -- %{debug_suffix_unquoted}}
 
@@ -1504,6 +1544,9 @@ The %{origin_nice} %{featurever} demos.
 %if %{include_normal_build}
 %package src
 Summary: %{origin_nice} %{featurever} Source Bundle
+%if 0%{?rhel} <= 8
+Group:   Development/Languages
+%endif
 
 %{java_src_rpo %{nil}}
 
@@ -1515,6 +1558,9 @@ class library source code for use by IDE indexers and debuggers.
 %if %{include_debug_build}
 %package src-slowdebug
 Summary: %{origin_nice} %{featurever} Source Bundle %{for_debug}
+%if 0%{?rhel} <= 8
+Group:   Development/Languages
+%endif
 
 %{java_src_rpo -- %{debug_suffix_unquoted}}
 
@@ -1535,10 +1581,12 @@ The %{compatiblename}-src-fastdebug sub-package contains the complete %{origin_n
  class library source code for use by IDE indexers and debuggers, %{for_fastdebug}.
 %endif
 
-
 %if %{include_normal_build}
 %package javadoc
 Summary: %{origin_nice} %{featurever} API documentation
+%if 0%{?rhel} <= 8
+Group:   Documentation
+%endif
 Requires: javapackages-filesystem
 Obsoletes: javadoc-slowdebug < 1:11.0.3.7-4
 
@@ -1549,6 +1597,9 @@ The %{origin_nice} %{featurever} API documentation.
 
 %package javadoc-zip
 Summary: %{origin_nice} %{featurever} API documentation compressed in a single archive
+%if 0%{?rhel} <= 8
+Group:   Documentation
+%endif
 Requires: javapackages-filesystem
 Obsoletes: javadoc-zip-slowdebug < 1:11.0.3.7-4
 
@@ -1608,7 +1659,6 @@ pushd %{top_level_dir_name}
 %patch3 -p1
 %patch4 -p1
 %patch7 -p1
-%patch8 -p1
 popd # openjdk
 
 %patch1000
@@ -1619,6 +1669,9 @@ popd # openjdk
 %patch1004
 %patch1007
 %patch1008
+%patch1009
+%patch1010
+%patch1011
 
 # Extract systemtap tapsets
 %if %{with_systemtap}
@@ -1629,7 +1682,6 @@ cp -r tapset tapset%{debug_suffix}
 %if %{include_fastdebug_build}
 cp -r tapset tapset%{fastdebug_suffix}
 %endif
-
 
 for suffix in %{build_loop} ; do
   for file in "tapset"$suffix/*.in; do
@@ -1703,42 +1755,28 @@ EXTRA_CFLAGS="$EXTRA_CFLAGS -fno-strict-aliasing"
 EXTRA_ASFLAGS="${EXTRA_CFLAGS} -Wa,--generate-missing-build-notes=yes"
 export EXTRA_CFLAGS EXTRA_ASFLAGS
 
-for suffix in %{build_loop} ; do
-if [ "x$suffix" = "x" ] ; then
-  debugbuild=release
-else
-  # change --something to something
-  debugbuild=`echo $suffix  | sed "s/-//g"`
-fi
+function buildjdk() {
+    local outputdir=${1}
+    local buildjdk=${2}
+    local maketargets="${3}"
+    local debuglevel=${4}
+    local link_opt=${5}
 
-for loop in %{main_suffix} %{staticlibs_loop} ; do
+    local top_dir_abs_src_path=$(pwd)/%{top_level_dir_name}
+    local top_dir_abs_build_path=$(pwd)/${outputdir}
 
-if test "x${loop}" = "x%{main_suffix}" ; then
-    # Copy the source tree so we can remove all in-tree libraries
-    cp -a %{top_level_dir_name} %{top_level_dir_name_backup}
-    # Remove all libraries that are linked
-    sh %{SOURCE12} %{top_level_dir_name} full
-    # Variable used by configure and hs_err hook on build failures
-    link_opt="system"
-    # Debug builds don't need same targets as release for
-    # build speed-up
-    maketargets="%{release_targets}"
-    if echo $debugbuild | grep -q "debug" ; then
-	maketargets="%{debug_targets}"
-    fi
-else
-    # Variable used by configure and hs_err hook on build failures
-    link_opt="bundled"
-    # Static library cycle only builds the static libraries
-    maketargets="%{static_libs_target}"
-fi
+    echo "Using output directory: ${outputdir}";
+    echo "Checking build JDK ${buildjdk} is operational..."
+    ${buildjdk}/bin/java -version
+    echo "Using make targets: ${maketargets}"
+    echo "Using debuglevel: ${debuglevel}"
+    echo "Using link_opt: ${link_opt}"
+    echo "Building %{newjavaver}-%{buildver}, pre=%{ea_designator}, opt=%{lts_designator}"
 
-top_dir_abs_src_path=$(pwd)/%{top_level_dir_name}
-top_dir_abs_build_path=$(pwd)/%{buildoutputdir -- ${suffix}${loop}}
-mkdir -p ${top_dir_abs_build_path}
-pushd ${top_dir_abs_build_path}
+    mkdir -p ${outputdir}
+    pushd ${outputdir}
 
-bash ${top_dir_abs_src_path}/configure \
+    bash ${top_dir_abs_src_path}/configure \
 %ifnarch %{jit_arches}
     --with-jvm-variants=zero \
 %endif
@@ -1753,9 +1791,9 @@ bash ${top_dir_abs_src_path}/configure \
     --with-vendor-url="%{oj_vendor_url}" \
     --with-vendor-bug-url="%{oj_vendor_bug_url}" \
     --with-vendor-vm-bug-url="%{oj_vendor_bug_url}" \
-    --with-boot-jdk=/usr/lib/jvm/java-%{buildjdkver}-openjdk \
-    --with-debug-level=$debugbuild \
-    --with-native-debug-symbols=internal \
+    --with-boot-jdk=${buildjdk} \
+    --with-debug-level=${debuglevel} \
+    --with-native-debug-symbols="%{debug_symbols}" \
     --enable-sysconf-nss \
     --enable-unlimited-crypto \
     --with-zlib=system \
@@ -1774,54 +1812,102 @@ bash ${top_dir_abs_src_path}/configure \
     --with-jvm-features="%{shenandoah_feature},%{zgc_feature}" \
     --disable-warnings-as-errors
 
-make \
-    JAVAC_FLAGS=-g \
-    LOG=trace \
-    WARNINGS_ARE_ERRORS="-Wno-error" \
-    CFLAGS_WARNINGS_ARE_ERRORS="-Wno-error" \
-    $maketargets || ( pwd; find ${top_dir_abs_src_path} ${top_dir_abs_build_path} -name "hs_err_pid*.log" | xargs cat && false )
+    cat spec.gmk
 
-popd >& /dev/null
+    make \
+      JAVAC_FLAGS=-g \
+      LOG=trace \
+      WARNINGS_ARE_ERRORS="-Wno-error" \
+      CFLAGS_WARNINGS_ARE_ERRORS="-Wno-error" \
+      $maketargets || ( pwd; find ${top_dir_abs_src_path} ${top_dir_abs_build_path} -name "hs_err_pid*.log" | xargs cat && false )
 
-# Restore original source tree if we modified it by removing full in-tree sources
-if [ -d %{top_level_dir_name_backup} ] ; then
-    rm -rf %{top_level_dir_name}
-    mv %{top_level_dir_name_backup} %{top_level_dir_name}
-fi
+    popd
+}
 
-done # end of main / staticlibs loop
+function installjdk() {
+    local imagepath=${1}
 
-top_dir_abs_main_build_path=$(pwd)/%{buildoutputdir -- ${suffix}%{main_suffix}}
+    # the build (erroneously) removes read permissions from some jars
+    # this is a regression in OpenJDK 7 (our compiler):
+    # http://icedtea.classpath.org/bugzilla/show_bug.cgi?id=1437
+    find ${imagepath} -iname '*.jar' -exec chmod ugo+r {} \;
 
-# the build (erroneously) removes read permissions from some jars
-# this is a regression in OpenJDK 7 (our compiler):
-# http://icedtea.classpath.org/bugzilla/show_bug.cgi?id=1437
-find ${top_dir_abs_main_build_path}/images/%{jdkimage} -iname '*.jar' -exec chmod ugo+r {} \;
+    # Build screws up permissions on binaries
+    # https://bugs.openjdk.java.net/browse/JDK-8173610
+    find ${imagepath} -iname '*.so' -exec chmod +x {} \;
+    find ${imagepath}/bin/ -exec chmod +x {} \;
 
-# Build screws up permissions on binaries
-# https://bugs.openjdk.java.net/browse/JDK-8173610
-find ${top_dir_abs_main_build_path}/images/%{jdkimage} -iname '*.so' -exec chmod +x {} \;
-find ${top_dir_abs_main_build_path}/images/%{jdkimage}/bin/ -exec chmod +x {} \;
+    # Install nss.cfg right away as we will be using the JRE above
+    install -m 644 nss.cfg ${imagepath}/conf/security/
 
-# Install nss.cfg right away as we will be using the JRE above
-export JAVA_HOME=${top_dir_abs_main_build_path}/images/%{jdkimage}
+    # Install nss.fips.cfg: NSS configuration for global FIPS mode (crypto-policies)
+    install -m 644 nss.fips.cfg ${imagepath}/conf/security/
 
-# Install nss.cfg right away as we will be using the JRE above
-install -m 644 nss.cfg $JAVA_HOME/conf/security/
+    # Use system-wide tzdata
+    rm ${imagepath}/lib/tzdb.dat
+    ln -s %{_datadir}/javazi-1.8/tzdb.dat ${imagepath}/lib/tzdb.dat
 
-# Install nss.fips.cfg: NSS configuration for global FIPS mode (crypto-policies)
-install -m 644 nss.fips.cfg $JAVA_HOME/conf/security/
+    # Create fake alt-java as a placeholder for future alt-java
+    pushd ${imagepath}
+    # add alt-java man page
+    echo "Hardened java binary recommended for launching untrusted code from the Web e.g. javaws" > man/man1/%{alt_java_name}.1
+    cat man/man1/java.1 >> man/man1/%{alt_java_name}.1
+    popd
+}
 
-# Use system-wide tzdata
-rm $JAVA_HOME/lib/tzdb.dat
-ln -s %{_datadir}/javazi-1.8/tzdb.dat $JAVA_HOME/lib/tzdb.dat
+for suffix in %{build_loop} ; do
 
-# Create fake alt-java as a placeholder for future alt-java
-pushd ${JAVA_HOME}
-# add alt-java man page
-echo "Hardened java binary recommended for launching untrusted code from the Web e.g. javaws" > man/man1/%{alt_java_name}.1
-cat man/man1/java.1 >> man/man1/%{alt_java_name}.1
-popd
+  if [ "x$suffix" = "x" ] ; then
+      debugbuild=release
+  else
+      # change --something to something
+      debugbuild=`echo $suffix  | sed "s/-//g"`
+  fi
+
+  systemjdk=/usr/lib/jvm/java-%{buildjdkver}-openjdk
+
+  for loop in %{main_suffix} %{staticlibs_loop} ; do
+
+    builddir=%{buildoutputdir -- ${suffix}${loop}}
+    bootbuilddir=boot${builddir}
+
+    if test "x${loop}" = "x%{main_suffix}" ; then
+      # Copy the source tree so we can remove all in-tree libraries
+      cp -a %{top_level_dir_name} %{top_level_dir_name_backup}
+      # Remove all libraries that are linked
+      sh %{SOURCE12} %{top_level_dir_name} full
+      # Use system libraries
+      link_opt="system"
+      # Debug builds don't need same targets as release for
+      # build speed-up
+      maketargets="%{release_targets}"
+      if echo $debugbuild | grep -q "debug" ; then
+	maketargets="%{debug_targets}"
+      fi
+%if %{bootstrap_build}
+      buildjdk ${bootbuilddir} ${systemjdk} "%{bootstrap_targets}" ${debugbuild} ${link_opt}
+      buildjdk ${builddir} $(pwd)/${bootbuilddir}/images/%{jdkimage} "${maketargets}" ${debugbuild} ${link_opt}
+      rm -rf ${bootbuilddir}
+%else
+      buildjdk ${builddir} ${systemjdk} "${maketargets}" ${debugbuild} ${link_opt}
+%endif
+      # Restore original source tree we modified by removing full in-tree sources
+      rm -rf %{top_level_dir_name}
+      mv %{top_level_dir_name_backup} %{top_level_dir_name}
+    else
+      # Use bundled libraries for building statically
+      link_opt="bundled"
+      # Static library cycle only builds the static libraries
+      maketargets="%{static_libs_target}"
+      # Always just do the one build for the static libraries
+      buildjdk ${builddir} ${systemjdk} "${maketargets}" ${debugbuild} ${link_opt}
+    fi
+
+  done # end of main / staticlibs loop
+
+  # Final setup on the main image
+  top_dir_abs_main_build_path=$(pwd)/%{buildoutputdir -- ${suffix}%{main_suffix}}
+  installjdk ${top_dir_abs_main_build_path}/images/%{jdkimage}
 
 # build cycles
 done # end of release / debug cycle loop
@@ -1876,8 +1962,9 @@ readelf --debug-dump $STATIC_LIBS_HOME/lib/libfdlibm.a | grep w_remainder.c
 readelf --debug-dump $STATIC_LIBS_HOME/lib/libfdlibm.a | grep e_remainder.c
 %endif
 
+so_suffix="so"
 # Check debug symbols are present and can identify code
-find "$JAVA_HOME" -iname '*.so' -print0 | while read -d $'\0' lib
+find "$JAVA_HOME" -iname "*.$so_suffix" -print0 | while read -d $'\0' lib
 do
   if [ -f "$lib" ] ; then
     echo "Testing $lib for debug symbols"
@@ -1937,15 +2024,16 @@ quit
 end
 run -version
 EOF
-
+%if 0%{?fedora} > 0
 # This fails on s390x for some reason. Disable for now. See:
 # https://koji.fedoraproject.org/koji/taskinfo?taskID=41499227
 %ifnarch s390x
 grep 'JavaCallWrapper::JavaCallWrapper' gdb.out
 %endif
+%endif
 
 # Check src.zip has all sources. See RHBZ#1130490
-jar -tf $JAVA_HOME/lib/src.zip | grep 'sun.misc.Unsafe'
+$JAVA_HOME/bin/jar -tf $JAVA_HOME/lib/src.zip | grep 'sun.misc.Unsafe'
 
 # Check class files include useful debugging information
 $JAVA_HOME/bin/javap -l java.lang.Object | grep "Compiled from"
@@ -2131,6 +2219,28 @@ arg = nil ;  -- it is better to null the arg up, no meter if they exists or not,
 cjc = require "copy_jdk_configs.lua"
 args = {"--currentjvm", "%{uniquesuffix %{nil}}", "--jvmdir", "%{_jvmdir %{nil}}", "--origname", "%{name}", "--origjavaver", "%{javaver}", "--arch", "%{_arch}", "--temp", "%{rpm_state_dir}/%{name}.%{_arch}"}
 cjc.mainProgram(args)
+-- the returns from copy_jdk_configs.lua should not affect this 'main', so it shodl run under all circumstances, except fatal error
+-- https://bugzilla.redhat.com/show_bug.cgi?id=1820172
+-- https://docs.fedoraproject.org/en-US/packaging-guidelines/Directory_Replacement/
+-- Define the path to directory being replaced below.
+-- DO NOT add a trailing slash at the end.
+path1 = "%{_jvmdir}/%{sdkdir -- %{nil}}/conf"
+path2 = "%{_jvmdir}/%{sdkdir -- %{nil}}/lib/security"
+array = {path1, path2}
+for index, path in pairs(array) do
+  st = posix.stat(path)
+  if st and st.type == "directory" then
+    status = os.rename(path, path .. ".rpmmoved")
+    if not status then
+      suffix = 0
+      while not status do
+        suffix = suffix + 1
+        status = os.rename(path .. ".rpmmoved", path .. ".rpmmoved." .. suffix)
+      end
+      os.rename(path, path .. ".rpmmoved")
+    end
+  end
+end
 
 %post
 %{post_script %{nil}}
@@ -2326,6 +2436,25 @@ cjc.mainProgram(args)
 %endif
 
 %changelog
+* Wed Oct 13 2021 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.13.0.8-1
+- Update to jdk-11.0.12.0+8
+- Update release notes to 11.0.12.0+8
+- Update tarball generation script to use git following OpenJDK 11u's move to github
+- Remove "-clean" suffix as no 11.0.13 builds are unclean.
+- Drop JDK-8269668 patch which is now applied upstream.
+- Extend the default security policy to accomodate PKCS11 accessing jdk.internal.misc.
+- Allow plain key import to be disabled with -Dcom.redhat.fips.plainKeySupport=false
+- Restructure the build so a minimal initial build is then used for the final build (with docs)
+- This reduces pressure on the system JDK and ensures the JDK being built can do a full build
+
+* Tue Oct 05 2021 Martin Balao <mbalao@redhat.com> - 1:11.0.13.0.8-1
+- Add patch to login to the NSS software token when in FIPS mode.
+- Add patch to allow plain key import.
+
+* Thu Sep 02 2021 Jiri Vanek <jvanek@redhat.com> - 1:11.0.13.0.8-1
+- Added posttrans hook which persist sanity of dir->symlink change in case of update from ancient versions
+- Minor cosmetic improvements to make spec more comparable between variants
+
 * Tue Aug 31 2021 Jiri Vanek <jvanek@redhat.com> - 1:11.0.12.0.7-3
 - alternatives creation moved to posttrans
 - Thus fixing the old reisntall issue:
