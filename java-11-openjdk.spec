@@ -297,7 +297,7 @@
 # New Version-String scheme-style defines
 %global featurever 11
 %global interimver 0
-%global updatever 13
+%global updatever 14
 %global patchver 0
 # If you bump featurever, you must bump also vendor_version_string
 # Used via new version scheme. JDK 11 was
@@ -344,8 +344,8 @@
 %global origin_nice     OpenJDK
 %global top_level_dir_name   %{origin}
 %global top_level_dir_name_backup %{top_level_dir_name}-backup
-%global buildver        8
-%global rpmrelease      2
+%global buildver        9
+%global rpmrelease      1
 #%%global tagsuffix     %%{nil}
 # Priority must be 8 digits in total; up to openjdk 1.8, we were using 18..... so when we moved to 11, we had to add another digit
 %if %is_system_jdk
@@ -796,7 +796,7 @@ exit 0
 %dir %{etcjavadir -- %{?1}}/conf/security/policy/limited
 %dir %{etcjavadir -- %{?1}}/conf/security/policy/unlimited
 %config(noreplace) %{etcjavadir -- %{?1}}/lib/security/default.policy
-%config(noreplace) %{etcjavadir -- %{?1}}/lib/security/blacklisted.certs
+%config(noreplace) %{etcjavadir -- %{?1}}/lib/security/blocked.certs
 %config(noreplace) %{etcjavadir -- %{?1}}/lib/security/public_suffix_list.dat
 %config(noreplace) %{etcjavadir -- %{?1}}/conf/security/policy/limited/exempt_local.policy
 %config(noreplace) %{etcjavadir -- %{?1}}/conf/security/policy/limited/default_local.policy
@@ -1237,9 +1237,11 @@ Patch1007: rh1915071-always_initialise_configurator_access.patch
 Patch1008: rh1929465-improve_system_FIPS_detection.patch
 # RH1996182: Login to the NSS software token in FIPS mode
 Patch1009: rh1996182-login_to_nss_software_token.patch
-Patch1010: rh1996182-extend_security_policy.patch
 # RH1991003: Allow plain key import unless com.redhat.fips.plainKeySupport is set to false
 Patch1011: rh1991003-enable_fips_keys_import.patch
+# RH2021263: Resolve outstanding FIPS issues
+Patch1014: rh2021263-fips_ensure_security_initialised.patch
+Patch1015: rh2021263-fips_missing_native_returns.patch
 
 #############################################
 #
@@ -1674,8 +1676,9 @@ popd # openjdk
 %patch1007
 %patch1008
 %patch1009
-%patch1010
 %patch1011
+%patch1014
+%patch1015
 
 # Extract systemtap tapsets
 %if %{with_systemtap}
@@ -2463,6 +2466,14 @@ end
 %endif
 
 %changelog
+* Mon Jan 24 2022 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.14.0.9-1
+- Update to jdk-11.0.14.0+9
+- Update release notes to 11.0.14.0+9
+- Rename blacklisted.certs to blocked.certs following JDK-8253866
+- Rebase RH1996182 login patch and drop redundant security policy extension after JDK-8269034
+- Fix FIPS issues in native code and with initialisation of java.security.Security
+- Turn off bootstrapping for slow debug builds, which are particularly slow on ppc64le.
+
 * Mon Nov 08 2021 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.13.0.8-2
 - Reduce disk footprint by removing build artifacts by default.
 - Turn off bootstrapping for slow debug builds, which are particularly slow on ppc64le.
