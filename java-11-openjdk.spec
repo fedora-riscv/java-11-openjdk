@@ -2467,7 +2467,7 @@ end
 - Reduce disk footprint by removing build artifacts by default.
 - Turn off bootstrapping for slow debug builds, which are particularly slow on ppc64le.
 
-* Wed Nov 04 2021 Jiri Vanek <jvanek@redhat.com> - 1:11.0.13.0.8-2
+* Thu Nov 04 2021 Jiri Vanek <jvanek@redhat.com> - 1:11.0.13.0.8-2
 - Use featurever variable in boot and install paths rather than a hardcoded value
 - Fix comment to refer to all debug builds, not just slowdebug.
 
