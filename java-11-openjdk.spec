@@ -98,7 +98,7 @@
 
 # while JDK is a techpreview(is_system_jdk=0), some provides are turned off. Once jdk stops to be an techpreview, move it to 1
 # as sytem JDK, we mean any JDK which can run whole system java stack without issues (like bytecode issues, module issues, dependencies...)
-%global is_system_jdk 0
+%global is_system_jdk 1
 
 %global aarch64         aarch64 arm64 armv8
 # we need to distinguish between big and little endian PPC64
@@ -111,9 +111,9 @@
 # Set of architectures for which we build fastdebug builds
 %global fastdebug_arches x86_64 ppc64le aarch64
 # Set of architectures with a Just-In-Time (JIT) compiler
-%global jit_arches      %{arm} %{aarch64} %{power64} s390x sparcv9 sparc64 x86_64
+%global jit_arches      %{arm} %{aarch64} %{power64} s390x sparcv9 sparc64 x86_64 %{ix86}
 # Set of architectures which use the Zero assembler port (!jit_arches)
-%global zero_arches ppc s390 %{ix86}
+%global zero_arches ppc s390
 # Set of architectures which run a full bootstrap cycle
 %global bootstrap_arches %{jit_arches} %{ix86}
 # Set of architectures which support SystemTap tapsets
