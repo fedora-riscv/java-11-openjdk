@@ -23,8 +23,6 @@
 %bcond_without staticlibs
 # Remove build artifacts by default
 %bcond_with artifacts
-# Build a fresh libjvm.so for use in a copy of the bootstrap JDK
-%bcond_without fresh_libjvm
 
 # Workaround for stripping of debug symbols from static libraries
 %if %{with staticlibs}
@@ -32,13 +30,6 @@
 %global include_staticlibs 1
 %else
 %global include_staticlibs 0
-%endif
-
-# Define whether to use the bootstrap JDK directly or with a fresh libjvm.so
-%if %{with fresh_libjvm}
-%global build_hotspot_first 1
-%else
-%global build_hotspot_first 0
 %endif
 
 # The -g flag says to use strip -g instead of full strip on DSOs or EXEs.
@@ -111,9 +102,7 @@
 # Set of architectures for which we build fastdebug builds
 %global fastdebug_arches x86_64 ppc64le aarch64
 # Set of architectures with a Just-In-Time (JIT) compiler
-%global jit_arches      %{arm} %{aarch64} %{ix86} %{power64} s390x sparcv9 sparc64 x86_64
-# Set of architectures which use the Zero assembler port (!jit_arches)
-%global zero_arches ppc s390
+%global jit_arches      %{debug_arches} %{arm}
 # Set of architectures which run a full bootstrap cycle
 %global bootstrap_arches %{jit_arches}
 # Set of architectures which support SystemTap tapsets
@@ -132,8 +121,6 @@
 %global zgc_arches x86_64
 # Set of architectures for which alt-java has SSB mitigation
 %global ssbd_arches x86_64
-# Set of architectures where we verify backtraces with gdb
-%global gdb_arches %{jit_arches} %{zero_arches}
 
 # By default, we build a slowdebug build during main build on JIT architectures
 %if %{with slowdebug}
@@ -187,7 +174,7 @@
 %global fastdebug_build %{nil}
 %endif
 
-# If you disable all builds, then the build fails
+# If you disable both builds, then the build fails
 # Build and test slowdebug first as it provides the best diagnostics
 %global build_loop %{slowdebug_build} %{fastdebug_build} %{normal_build}
 
@@ -221,11 +208,6 @@
 %global release_targets images docs-zip
 # No docs nor bootcycle for debug builds
 %global debug_targets images
-# Target to use to just build HotSpot
-%global hotspot_target hotspot
-
-# JDK to use for bootstrapping
-%global bootjdk /usr/lib/jvm/java-%{buildjdkver}-openjdk
 
 # Disable LTO as this causes build failures at the moment.
 # See RHBZ#1861401
@@ -316,7 +298,7 @@
 %global featurever 11
 %global interimver 0
 %global updatever 14
-%global patchver 1
+%global patchver 0
 # If you bump featurever, you must bump also vendor_version_string
 # Used via new version scheme. JDK 11 was
 # GA'ed in September 2018 => 18.9
@@ -362,8 +344,8 @@
 %global origin_nice     OpenJDK
 %global top_level_dir_name   %{origin}
 %global top_level_dir_name_backup %{top_level_dir_name}-backup
-%global buildver        1
-%global rpmrelease      1
+%global buildver        9
+%global rpmrelease      2
 #%%global tagsuffix     %%{nil}
 # Priority must be 8 digits in total; up to openjdk 1.8, we were using 18..... so when we moved to 11, we had to add another digit
 %if %is_system_jdk
@@ -461,9 +443,6 @@
 %global alternatives_requires %{_sbindir}/alternatives
 %endif
 
-%global family %{name}.%{_arch}
-%global family_noarch  %{name}
-
 %if %{with_systemtap}
 # Where to install systemtap tapset (links)
 # We would like these to be in a package specific sub-dir,
@@ -481,50 +460,6 @@
 # not-duplicated scriptlets for normal/debug packages
 %global update_desktop_icons /usr/bin/gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
 
-%define save_alternatives() %{expand:
-  # warning! alternatives are localised!
-  # LANG=cs_CZ.UTF-8  alternatives --display java | head
-  # LANG=en_US.UTF-8  alternatives --display java | head
-  function nonLocalisedAlternativesDisplayOfMaster() {
-    LANG=en_US.UTF-8 alternatives --display "$MASTER"
-  }
-  function headOfAbove() {
-    nonLocalisedAlternativesDisplayOfMaster | head -n $1
-  }
-  MASTER="%{?1}"
-  LOCAL_LINK="%{?2}"
-  FAMILY="%{?3}"
-  rm -f %{_localstatedir}/lib/rpm-state/"$MASTER"_$FAMILY > /dev/null
-  if nonLocalisedAlternativesDisplayOfMaster > /dev/null ; then
-      if headOfAbove 1 | grep -q manual ; then
-        if headOfAbove 2 | tail -n 1 | grep -q %{compatiblename} ; then
-           headOfAbove 2  > %{_localstatedir}/lib/rpm-state/"$MASTER"_"$FAMILY"
-        fi
-      fi
-  fi
-}
-
-%define save_and_remove_alternatives() %{expand:
-  if [ "x$debug"  == "xtrue" ] ; then
-    set -x
-  fi
-  upgrade1_uninstal0=%{?3}
-  if [ "0$upgrade1_uninstal0" -gt 0 ] ; then # removal of this condition will cause persistence between uninstall
-    %{save_alternatives %{?1} %{?2} %{?4}}
-  fi
-  alternatives --remove  "%{?1}" "%{?2}"
-}
-
-%define set_if_needed_alternatives() %{expand:
-  MASTER="%{?1}"
-  FAMILY="%{?2}"
-  ALTERNATIVES_FILE="%{_localstatedir}/lib/rpm-state/$MASTER"_"$FAMILY"
-  if [ -e  "$ALTERNATIVES_FILE" ] ; then
-    rm "$ALTERNATIVES_FILE"
-    alternatives --set $MASTER $FAMILY
-  fi
-}
-
 
 %define post_script() %{expand:
 update-desktop-database %{_datadir}/applications &> /dev/null || :
@@ -533,18 +468,14 @@ exit 0
 }
 
 %define alternatives_java_install() %{expand:
-if [ "x$debug"  == "xtrue" ] ; then
-  set -x
-fi
 PRIORITY=%{priority}
 if [ "%{?1}" == %{debug_suffix} ]; then
   let PRIORITY=PRIORITY-1
 fi
 
 ext=.gz
-key=java
 alternatives \\
-  --install %{_bindir}/java $key %{jrebindir -- %{?1}}/java $PRIORITY  --family %{family} \\
+  --install %{_bindir}/java java %{jrebindir -- %{?1}}/java $PRIORITY  --family %{name}.%{_arch} \\
   --slave %{_jvmdir}/jre jre %{_jvmdir}/%{sdkdir -- %{?1}} \\
   --slave %{_bindir}/%{alt_java_name} %{alt_java_name} %{jrebindir -- %{?1}}/%{alt_java_name} \\
   --slave %{_bindir}/jjs jjs %{jrebindir -- %{?1}}/jjs \\
@@ -570,17 +501,11 @@ alternatives \\
   --slave %{_mandir}/man1/unpack200.1$ext unpack200.1$ext \\
   %{_mandir}/man1/unpack200-%{uniquesuffix -- %{?1}}.1$ext
 
-%{set_if_needed_alternatives $key %{family}}
-
 for X in %{origin} %{javaver} ; do
-  key=jre_"$X"
-  alternatives --install %{_jvmdir}/jre-"$X" $key %{_jvmdir}/%{sdkdir -- %{?1}} $PRIORITY --family %{family}
-  %{set_if_needed_alternatives $key %{family}}
+  alternatives --install %{_jvmdir}/jre-"$X" jre_"$X" %{_jvmdir}/%{sdkdir -- %{?1}} $PRIORITY --family %{name}.%{_arch}
 done
 
-key=jre_%{javaver}_%{origin}
-alternatives --install %{_jvmdir}/jre-%{javaver}-%{origin} $key %{_jvmdir}/%{jrelnk -- %{?1}} $PRIORITY  --family %{family}
-%{set_if_needed_alternatives $key %{family}}
+alternatives --install %{_jvmdir}/jre-%{javaver}-%{origin} jre_%{javaver}_%{origin} %{_jvmdir}/%{jrelnk -- %{?1}} $PRIORITY  --family %{name}.%{_arch}
 }
 
 %define post_headless() %{expand:
@@ -613,14 +538,10 @@ exit 0
 
 
 %define postun_headless() %{expand:
-  if [ "x$debug"  == "xtrue" ] ; then
-    set -x
-  fi
-  post_state=$1 # from postun, https://docs.fedoraproject.org/en-US/packaging-guidelines/Scriptlets/#_syntax
-  %{save_and_remove_alternatives  java  %{jrebindir -- %{?1}}/java $post_state %{family}}
-  %{save_and_remove_alternatives  jre_%{origin} %{_jvmdir}/%{sdkdir -- %{?1}} $post_state %{family}}
-  %{save_and_remove_alternatives  jre_%{javaver} %{_jvmdir}/%{sdkdir -- %{?1}} $post_state %{family}}
-  %{save_and_remove_alternatives  jre_%{javaver}_%{origin} %{_jvmdir}/%{jrelnk -- %{?1}} $post_state %{family}}
+  alternatives --remove java %{jrebindir -- %{?1}}/java
+  alternatives --remove jre_%{origin} %{_jvmdir}/%{sdkdir -- %{?1}}
+  alternatives --remove jre_%{javaver} %{_jvmdir}/%{sdkdir -- %{?1}}
+  alternatives --remove jre_%{javaver}_%{origin} %{_jvmdir}/%{jrelnk -- %{?1}}
 }
 
 %define posttrans_script() %{expand:
@@ -629,18 +550,14 @@ exit 0
 
 
 %define alternatives_javac_install() %{expand:
-if [ "x$debug"  == "xtrue" ] ; then
-  set -x
-fi
 PRIORITY=%{priority}
 if [ "%{?1}" == %{debug_suffix} ]; then
   let PRIORITY=PRIORITY-1
 fi
 
 ext=.gz
-key=javac
 alternatives \\
-  --install %{_bindir}/javac $key %{sdkbindir -- %{?1}}/javac $PRIORITY  --family %{family} \\
+  --install %{_bindir}/javac javac %{sdkbindir -- %{?1}}/javac $PRIORITY  --family %{name}.%{_arch} \\
   --slave %{_jvmdir}/java java_sdk %{_jvmdir}/%{sdkdir -- %{?1}} \\
 %ifarch %{aot_arches}
   --slave %{_bindir}/jaotc jaotc %{sdkbindir -- %{?1}}/jaotc \\
@@ -648,9 +565,7 @@ alternatives \\
   --slave %{_bindir}/jlink jlink %{sdkbindir -- %{?1}}/jlink \\
   --slave %{_bindir}/jmod jmod %{sdkbindir -- %{?1}}/jmod \\
 %ifarch %{sa_arches}
-%ifnarch %{zero_arches}
   --slave %{_bindir}/jhsdb jhsdb %{sdkbindir -- %{?1}}/jhsdb \\
-%endif
 %endif
   --slave %{_bindir}/jar jar %{sdkbindir -- %{?1}}/jar \\
   --slave %{_bindir}/jarsigner jarsigner %{sdkbindir -- %{?1}}/jarsigner \\
@@ -708,19 +623,14 @@ alternatives \\
   --slave %{_mandir}/man1/rmic.1$ext rmic.1$ext \\
   %{_mandir}/man1/rmic-%{uniquesuffix -- %{?1}}.1$ext \\
   --slave %{_mandir}/man1/serialver.1$ext serialver.1$ext \\
-  %{_mandir}/man1/serialver-%{uniquesuffix -- %{?1}}.1$ext
-
-%{set_if_needed_alternatives  $key %{family}}
+  %{_mandir}/man1/serialver-%{uniquesuffix -- %{?1}}.1$ext \\
 
 for X in %{origin} %{javaver} ; do
-  key=java_sdk_"$X"
-  alternatives --install %{_jvmdir}/java-"$X" $key %{_jvmdir}/%{sdkdir -- %{?1}} $PRIORITY  --family %{family}
-  %{set_if_needed_alternatives  $key %{family}}
+  alternatives \\
+    --install %{_jvmdir}/java-"$X" java_sdk_"$X" %{_jvmdir}/%{sdkdir -- %{?1}} $PRIORITY  --family %{name}.%{_arch}
 done
 
-key=java_sdk_%{javaver}_%{origin}
-alternatives --install %{_jvmdir}/java-%{javaver}-%{origin} $key %{_jvmdir}/%{sdkdir -- %{?1}} $PRIORITY  --family %{family}
-%{set_if_needed_alternatives  $key %{family}}
+update-alternatives --install %{_jvmdir}/java-%{javaver}-%{origin} java_sdk_%{javaver}_%{origin} %{_jvmdir}/%{sdkdir -- %{?1}} $PRIORITY  --family %{name}.%{_arch}
 }
 
 %define post_devel() %{expand:
@@ -731,14 +641,10 @@ exit 0
 }
 
 %define postun_devel() %{expand:
-  if [ "x$debug"  == "xtrue" ] ; then
-    set -x
-  fi
-  post_state=$1 # from postun, https://docs.fedoraproject.org/en-US/packaging-guidelines/Scriptlets/#_syntax
-  %{save_and_remove_alternatives  javac %{sdkbindir -- %{?1}}/javac $post_state %{family}}
-  %{save_and_remove_alternatives  java_sdk_%{origin} %{_jvmdir}/%{sdkdir -- %{?1}} $post_state %{family}}
-  %{save_and_remove_alternatives  java_sdk_%{javaver} %{_jvmdir}/%{sdkdir -- %{?1}} $post_state %{family}}
-  %{save_and_remove_alternatives  java_sdk_%{javaver}_%{origin} %{_jvmdir}/%{sdkdir -- %{?1}} $post_state %{family}}
+  alternatives --remove javac %{sdkbindir -- %{?1}}/javac
+  alternatives --remove java_sdk_%{origin} %{_jvmdir}/%{sdkdir -- %{?1}}
+  alternatives --remove java_sdk_%{javaver} %{_jvmdir}/%{sdkdir -- %{?1}}
+  alternatives --remove java_sdk_%{javaver}_%{origin} %{_jvmdir}/%{sdkdir -- %{?1}}
 
 update-desktop-database %{_datadir}/applications &> /dev/null || :
 
@@ -755,49 +661,36 @@ exit 0
 }
 
 %define alternatives_javadoc_install() %{expand:
-if [ "x$debug"  == "xtrue" ] ; then
-  set -x
-fi
 PRIORITY=%{priority}
 if [ "%{?1}" == %{debug_suffix} ]; then
   let PRIORITY=PRIORITY-1
 fi
 
-key=javadocdir
-alternatives --install %{_javadocdir}/java $key %{_javadocdir}/%{uniquejavadocdir -- %{?1}}/api $PRIORITY  --family %{family_noarch}
-%{set_if_needed_alternatives  $key %{family_noarch}}
+alternatives \\
+  --install %{_javadocdir}/java javadocdir %{_javadocdir}/%{uniquejavadocdir -- %{?1}}/api \\
+  $PRIORITY  --family %{name}
 exit 0
 }
 
 %define postun_javadoc() %{expand:
-if [ "x$debug"  == "xtrue" ] ; then
-  set -x
-fi
-  post_state=$1 # from postun, https://docs.fedoraproject.org/en-US/packaging-guidelines/Scriptlets/#_syntax
-  %{save_and_remove_alternatives  javadocdir  %{_javadocdir}/%{uniquejavadocdir -- %{?1}}/api $post_state %{family_noarch}}
+  alternatives --remove javadocdir %{_javadocdir}/%{uniquejavadocdir -- %{?1}}/api
 exit 0
 }
 
 %define alternatives_javadoczip_install() %{expand:
-if [ "x$debug"  == "xtrue" ] ; then
-  set -x
-fi
 PRIORITY=%{priority}
 if [ "%{?1}" == %{debug_suffix} ]; then
   let PRIORITY=PRIORITY-1
 fi
-key=javadoczip
-alternatives --install %{_javadocdir}/java-zip $key %{_javadocdir}/%{uniquejavadocdir -- %{?1}}.zip $PRIORITY  --family %{family_noarch}
-%{set_if_needed_alternatives  $key %{family_noarch}}
+
+alternatives \\
+  --install %{_javadocdir}/java-zip javadoczip %{_javadocdir}/%{uniquejavadocdir -- %{?1}}.zip \\
+  $PRIORITY  --family %{name}
 exit 0
 }
 
 %define postun_javadoc_zip() %{expand:
-  if [ "x$debug"  == "xtrue" ] ; then
-    set -x
-  fi
-  post_state=$1 # from postun, https://docs.fedoraproject.org/en-US/packaging-guidelines/Scriptlets/#_syntax
-  %{save_and_remove_alternatives  javadoczip  %{_javadocdir}/%{uniquejavadocdir -- %{?1}}.zip $post_state %{family_noarch}}
+  alternatives --remove javadoczip %{_javadocdir}/%{uniquejavadocdir -- %{?1}}.zip
 exit 0
 }
 
@@ -868,9 +761,7 @@ exit 0
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/librmi.so
 # Some architectures don't have the serviceability agent
 %ifarch %{sa_arches}
-%ifnarch %{zero_arches}
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/libsaproc.so
-%endif
 %endif
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/libsctp.so
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/libsunec.so
@@ -965,9 +856,7 @@ exit 0
 %{_jvmdir}/%{sdkdir -- %{?1}}/bin/jimage
 # Some architectures don't have the serviceability agent
 %ifarch %{sa_arches}
-%ifnarch %{zero_arches}
 %{_jvmdir}/%{sdkdir -- %{?1}}/bin/jhsdb
-%endif
 %endif
 %{_jvmdir}/%{sdkdir -- %{?1}}/bin/jinfo
 %{_jvmdir}/%{sdkdir -- %{?1}}/bin/jlink
@@ -1223,10 +1112,10 @@ Requires(post):   %{alternatives_requires}
 Requires(postun): %{alternatives_requires}
 
 # Standard JPackage javadoc provides
-Provides: java-%{javaver}-javadoc%{?1}%{?2} = %{epoch}:%{version}-%{release}
-Provides: java-%{javaver}-%{origin}-javadoc%{?1}%{?2} = %{epoch}:%{version}-%{release}
+Provides: java-%{javaver}-javadoc%{?1} = %{epoch}:%{version}-%{release}
+Provides: java-%{javaver}-%{origin}-javadoc%{?1} = %{epoch}:%{version}-%{release}
 %if %is_system_jdk
-Provides: java-javadoc%{?1}%{?2} = %{epoch}:%{version}-%{release}
+Provides: java-javadoc%{?1} = %{epoch}:%{version}-%{release}
 %endif
 }
 
@@ -1353,7 +1242,6 @@ Patch1011: rh1991003-enable_fips_keys_import.patch
 # RH2021263: Resolve outstanding FIPS issues
 Patch1014: rh2021263-fips_ensure_security_initialised.patch
 Patch1015: rh2021263-fips_missing_native_returns.patch
-Patch1016: rh2021263-fips_separate_policy_and_fips_init.patch
 
 #############################################
 #
@@ -1377,18 +1265,6 @@ Patch3:    rh649512-remove_uses_of_far_in_jpeg_libjpeg_turbo_1_4_compat_for_jdk1
 Patch4: pr3694-rh1340845-support_fedora_rhel_system_crypto_policy.patch
 # PR3695: Allow use of system crypto policy to be disabled by the user
 Patch7: pr3695-toggle_system_crypto_policy.patch
-
-#############################################
-#
-# Backportable patches
-#
-# This section includes patches which are
-# present in the current development tree, but
-# need to be reviewed & pushed to the appropriate
-# updates tree of OpenJDK.
-#############################################
-# JDK-8257794: Zero: assert(istate->_stack_limit == istate->_thread->last_Java_sp() + 1) failed: wrong on Linux/x86_32
-Patch101: jdk8257794-remove_broken_assert.patch
 
 #############################################
 #
@@ -1434,7 +1310,7 @@ BuildRequires: unzip
 BuildRequires: javapackages-filesystem
 BuildRequires: java-%{buildjdkver}-openjdk-devel
 # Zero-assembler build requirement
-%ifarch %{zero_arches}
+%ifnarch %{jit_arches}
 BuildRequires: libffi-devel
 %endif
 # 2021e required as of JDK-8275766 in January 2022 CPU
@@ -1720,7 +1596,7 @@ Group:   Documentation
 Requires: javapackages-filesystem
 Obsoletes: javadoc-slowdebug < 1:11.0.3.7-4
 
-%{java_javadoc_rpo -- %{nil} %{nil}}
+%{java_javadoc_rpo %{nil}}
 
 %description javadoc
 The %{origin_nice} %{featurever} API documentation.
@@ -1733,8 +1609,7 @@ Group:   Documentation
 Requires: javapackages-filesystem
 Obsoletes: javadoc-zip-slowdebug < 1:11.0.3.7-4
 
-%{java_javadoc_rpo -- %{nil} -zip}
-%{java_javadoc_rpo -- %{nil} %{nil}}
+%{java_javadoc_rpo %{nil}}
 
 %description javadoc-zip
 The %{origin_nice} %{featurever} API documentation compressed in a single archive.
@@ -1792,8 +1667,6 @@ pushd %{top_level_dir_name}
 %patch7 -p1
 popd # openjdk
 
-%patch101
-
 %patch1000
 %patch600
 %patch1001
@@ -1806,7 +1679,6 @@ popd # openjdk
 %patch1011
 %patch1014
 %patch1015
-%patch1016
 
 # Extract systemtap tapsets
 %if %{with_systemtap}
@@ -1885,21 +1757,17 @@ EXTRA_CPP_FLAGS="%ourcppflags"
 # fix rpmlint warnings
 EXTRA_CFLAGS="$EXTRA_CFLAGS -fno-strict-aliasing"
 %endif
-%ifarch %{ix86}
-# Align stack boundary on x86_32
-EXTRA_CFLAGS="$(echo ${EXTRA_CFLAGS} | sed -e 's|-mstackrealign|-mincoming-stack-boundary=2 -mpreferred-stack-boundary=4|')"
-EXTRA_CPP_FLAGS="$(echo ${EXTRA_CPP_FLAGS} | sed -e 's|-mstackrealign|-mincoming-stack-boundary=2 -mpreferred-stack-boundary=4|')"
-%endif
 # Fixes annocheck warnings in assembler files due to missing build notes
 EXTRA_ASFLAGS="${EXTRA_CFLAGS} -Wa,--generate-missing-build-notes=yes"
-export EXTRA_CFLAGS EXTRA_CPP_FLAGS EXTRA_ASFLAGS
+export EXTRA_CFLAGS EXTRA_ASFLAGS
 
 function buildjdk() {
     local outputdir=${1}
-    local buildjdk=${2}
-    local maketargets="${3}"
-    local debuglevel=${4}
-    local link_opt=${5}
+    local installdir=${2}
+    local buildjdk=${3}
+    local maketargets="${4}"
+    local debuglevel=${5}
+    local link_opt=${6}
 
     local top_dir_abs_src_path=$(pwd)/%{top_level_dir_name}
     local top_dir_abs_build_path=$(pwd)/${outputdir}
@@ -1912,11 +1780,11 @@ function buildjdk() {
     echo "Using link_opt: ${link_opt}"
     echo "Building %{newjavaver}-%{buildver}, pre=%{ea_designator}, opt=%{lts_designator}"
 
-    mkdir -p ${outputdir}
+    mkdir -p ${outputdir} ${installdir}
     pushd ${outputdir}
 
     bash ${top_dir_abs_src_path}/configure \
-%ifarch %{zero_arches}
+%ifnarch %{jit_arches}
     --with-jvm-variants=zero \
 %endif
 %ifarch %{ppc64le}
@@ -1961,15 +1829,8 @@ function buildjdk() {
       $maketargets || ( pwd; find ${top_dir_abs_src_path} ${top_dir_abs_build_path} -name "hs_err_pid*.log" | xargs cat && false )
 
     popd
-}
-
-function installjdk() {
-    local outputdir=${1}
-    local installdir=${2}
-    local imagepath=${installdir}/images/%{jdkimage}
 
     echo "Installing build from ${outputdir} to ${installdir}..."
-    mkdir -p ${installdir}
     echo "Installing images..."
     mv ${outputdir}/images ${installdir}
     if [ -d ${outputdir}/bundles ] ; then
@@ -1985,46 +1846,38 @@ function installjdk() {
     echo "Removing output directory...";
     rm -rf ${outputdir}
 %endif
-
-    if [ -d ${imagepath} ] ; then
-	# the build (erroneously) removes read permissions from some jars
-	# this is a regression in OpenJDK 7 (our compiler):
-	# http://icedtea.classpath.org/bugzilla/show_bug.cgi?id=1437
-	find ${imagepath} -iname '*.jar' -exec chmod ugo+r {} \;
-
-	# Build screws up permissions on binaries
-	# https://bugs.openjdk.java.net/browse/JDK-8173610
-	find ${imagepath} -iname '*.so' -exec chmod +x {} \;
-	find ${imagepath}/bin/ -exec chmod +x {} \;
-
-	# Install nss.cfg right away as we will be using the JRE above
-	install -m 644 nss.cfg ${imagepath}/conf/security/
-
-	# Install nss.fips.cfg: NSS configuration for global FIPS mode (crypto-policies)
-	install -m 644 nss.fips.cfg ${imagepath}/conf/security/
-
-	# Use system-wide tzdata
-	rm ${imagepath}/lib/tzdb.dat
-	ln -s %{_datadir}/javazi-1.8/tzdb.dat ${imagepath}/lib/tzdb.dat
-
-	# Create fake alt-java as a placeholder for future alt-java
-	pushd ${imagepath}
-	# add alt-java man page
-	echo "Hardened java binary recommended for launching untrusted code from the Web e.g. javaws" > man/man1/%{alt_java_name}.1
-	cat man/man1/java.1 >> man/man1/%{alt_java_name}.1
-	popd
-    fi
 }
 
-%if %{build_hotspot_first}
-  # Build a fresh libjvm.so first and use it to bootstrap
-  cp -LR --preserve=mode,timestamps %{bootjdk} newboot
-  systemjdk=$(pwd)/newboot
-  buildjdk build/newboot ${systemjdk} %{hotspot_target} "release" "bundled"
-  mv build/newboot/jdk/lib/server/libjvm.so newboot/lib/server
-%else
-  systemjdk=%{bootjdk}
-%endif
+function installjdk() {
+    local imagepath=${1}
+
+    # the build (erroneously) removes read permissions from some jars
+    # this is a regression in OpenJDK 7 (our compiler):
+    # http://icedtea.classpath.org/bugzilla/show_bug.cgi?id=1437
+    find ${imagepath} -iname '*.jar' -exec chmod ugo+r {} \;
+
+    # Build screws up permissions on binaries
+    # https://bugs.openjdk.java.net/browse/JDK-8173610
+    find ${imagepath} -iname '*.so' -exec chmod +x {} \;
+    find ${imagepath}/bin/ -exec chmod +x {} \;
+
+    # Install nss.cfg right away as we will be using the JRE above
+    install -m 644 nss.cfg ${imagepath}/conf/security/
+
+    # Install nss.fips.cfg: NSS configuration for global FIPS mode (crypto-policies)
+    install -m 644 nss.fips.cfg ${imagepath}/conf/security/
+
+    # Use system-wide tzdata
+    rm ${imagepath}/lib/tzdb.dat
+    ln -s %{_datadir}/javazi-1.8/tzdb.dat ${imagepath}/lib/tzdb.dat
+
+    # Create fake alt-java as a placeholder for future alt-java
+    pushd ${imagepath}
+    # add alt-java man page
+    echo "Hardened java binary recommended for launching untrusted code from the Web e.g. javaws" > man/man1/%{alt_java_name}.1
+    cat man/man1/java.1 >> man/man1/%{alt_java_name}.1
+    popd
+}
 
 for suffix in %{build_loop} ; do
 
@@ -2035,6 +1888,7 @@ for suffix in %{build_loop} ; do
       debugbuild=`echo $suffix  | sed "s/-//g"`
   fi
 
+  systemjdk=/usr/lib/jvm/java-%{buildjdkver}-openjdk
 
   for loop in %{main_suffix} %{staticlibs_loop} ; do
 
@@ -2061,14 +1915,11 @@ for suffix in %{build_loop} ; do
         run_bootstrap=%{bootstrap_build}
       fi
       if ${run_bootstrap} ; then
-          buildjdk ${bootbuilddir} ${systemjdk} "%{bootstrap_targets}" ${debugbuild} ${link_opt}
-          installjdk ${bootbuilddir} ${bootinstalldir}
-          buildjdk ${builddir} $(pwd)/${bootinstalldir}/images/%{jdkimage} "${maketargets}" ${debugbuild} ${link_opt}
-          installjdk ${builddir} ${installdir}
-          %{!?with_artifacts:rm -rf ${bootinstalldir}}
+         buildjdk ${bootbuilddir} ${bootinstalldir} ${systemjdk} "%{bootstrap_targets}" ${debugbuild} ${link_opt}
+         buildjdk ${builddir} ${installdir} $(pwd)/${bootinstalldir}/images/%{jdkimage} "${maketargets}" ${debugbuild} ${link_opt}
+         %{!?with_artifacts:rm -rf ${bootinstalldir}}
       else
-          buildjdk ${builddir} ${systemjdk} "${maketargets}" ${debugbuild} ${link_opt}
-          installjdk ${builddir} ${installdir}
+        buildjdk ${builddir} ${installdir} ${systemjdk} "${maketargets}" ${debugbuild} ${link_opt}
       fi
       # Restore original source tree we modified by removing full in-tree sources
       rm -rf %{top_level_dir_name}
@@ -2079,11 +1930,14 @@ for suffix in %{build_loop} ; do
       # Static library cycle only builds the static libraries
       maketargets="%{static_libs_target}"
       # Always just do the one build for the static libraries
-      buildjdk ${builddir} ${systemjdk} "${maketargets}" ${debugbuild} ${link_opt}
-      installjdk ${builddir} ${installdir}
+      buildjdk ${builddir} ${installdir} ${systemjdk} "${maketargets}" ${debugbuild} ${link_opt}
     fi
 
   done # end of main / staticlibs loop
+
+  # Final setup on the main image
+  top_dir_abs_main_build_path=$(pwd)/%{installoutputdir -- ${suffix}%{main_suffix}}
+  installjdk ${top_dir_abs_main_build_path}/images/%{jdkimage}
 
 # build cycles
 done # end of release / debug cycle loop
@@ -2193,15 +2047,19 @@ gdb -q "$JAVA_HOME/bin/java" <<EOF | tee gdb.out
 handle SIGSEGV pass nostop noprint
 handle SIGILL pass nostop noprint
 set breakpoint pending on
-break javaCalls.cpp:58
+break javaCalls.cpp:1
 commands 1
 backtrace
 quit
 end
 run -version
 EOF
-%ifarch %{gdb_arches}
+%if 0%{?fedora} > 0
+# This fails on s390x for some reason. Disable for now. See:
+# https://koji.fedoraproject.org/koji/taskinfo?taskID=41499227
+%ifnarch s390x
 grep 'JavaCallWrapper::JavaCallWrapper' gdb.out
+%endif
 %endif
 
 # Check src.zip has all sources. See RHBZ#1130490
@@ -2608,31 +2466,6 @@ end
 %endif
 
 %changelog
-* Fri Feb 11 2022 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.14.1.1-1
-- Update to jdk-11.0.14.1+1
-- Update release notes to 11.0.14.1+1
-- Separate crypto policy initialisation from FIPS initialisation, now they are no longer interdependent
-- Sync gdb test with java-1.8.0-openjdk.
-- Improve architecture restrictions for the gdb test.
-- Replace -mstackrealign with -mincoming-stack-boundary=2 -mpreferred-stack-boundary=4 on x86_32 for stack alignment
-- Refactor build functions so we can build just HotSpot without any attempt at installation.
-- Explicitly list JIT architectures rather than relying on those with slowdebug builds
-- Disable the serviceability agent on Zero architectures even when the architecture itself is supported
-- Add backport of JDK-8257794 to fix bogus assert on slowdebug x86-32 Zero builds
-
-* Mon Feb 14 2022 Jiri Vanek <jvanek@redhat.com> - 1:11.0.14.1.1-1
-- Storing and restoring alterntives during update manually
-- Fixing Bug 2001567 - update of JDK/JRE is removing its manually selected alternatives and select (as auto) system JDK/JRE
--- The move of alternatives creation to posttrans to fix:
--- Bug 1200302 - dnf reinstall breaks alternatives
--- Had caused the alternatives to be removed, and then created again,
--- instead of being added, and then removing the old, and thus persisting
--- the selection in family
--- Thus this fix, is storing the family of manually selected master, and if
--- stored, then it is restoring the family of the master
-- Family extracted to globals
-- javadoc-zip got its own provides next to plain javadoc ones
-
 * Mon Jan 24 2022 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.14.0.9-2
 - Require tzdata 2021e as of JDK-8275766.
 
