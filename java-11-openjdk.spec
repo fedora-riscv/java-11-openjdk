@@ -111,11 +111,11 @@
 # Set of architectures for which we build fastdebug builds
 %global fastdebug_arches x86_64 ppc64le aarch64
 # Set of architectures with a Just-In-Time (JIT) compiler
-%global jit_arches      %{arm} %{aarch64} %{power64} s390x sparcv9 sparc64 x86_64 %{ix86}
+%global jit_arches      %{arm} %{aarch64} %{ix86} %{power64} s390x sparcv9 sparc64 x86_64
 # Set of architectures which use the Zero assembler port (!jit_arches)
 %global zero_arches ppc s390
 # Set of architectures which run a full bootstrap cycle
-%global bootstrap_arches %{jit_arches} %{ix86}
+%global bootstrap_arches %{jit_arches}
 # Set of architectures which support SystemTap tapsets
 %global systemtap_arches %{jit_arches}
 # Set of architectures with a Ahead-Of-Time (AOT) compiler
@@ -363,7 +363,7 @@
 %global top_level_dir_name   %{origin}
 %global top_level_dir_name_backup %{top_level_dir_name}-backup
 %global buildver        1
-%global rpmrelease      3
+%global rpmrelease      4
 #%%global tagsuffix     %%{nil}
 # Priority must be 8 digits in total; up to openjdk 1.8, we were using 18..... so when we moved to 11, we had to add another digit
 %if %is_system_jdk
@@ -919,7 +919,7 @@ exit 0
 %config(noreplace) %{etcjavadir -- %{?1}}/conf/security/nss.cfg
 %config(noreplace) %{etcjavadir -- %{?1}}/conf/security/nss.fips.cfg
 %config(noreplace) %{etcjavadir -- %{?1}}/conf/management/jmxremote.access
-# this is conifg template, thus not config-noreplace
+# This is a config template, and thus not config-noreplace
 %config  %{etcjavadir -- %{?1}}/conf/management/jmxremote.password.template
 %config(noreplace) %{etcjavadir -- %{?1}}/conf/management/management.properties
 %config(noreplace) %{etcjavadir -- %{?1}}/conf/net.properties
@@ -1724,9 +1724,7 @@ Obsoletes: javadoc-slowdebug < 1:11.0.3.7-4
 
 %description javadoc
 The %{origin_nice} %{featurever} API documentation.
-%endif
 
-%if %{include_normal_build}
 %package javadoc-zip
 Summary: %{origin_nice} %{featurever} API documentation compressed in a single archive
 %if 0%{?rhel} <= 8
@@ -2202,10 +2200,6 @@ quit
 end
 run -version
 EOF
-# Temporarily disable check as gdb crashes on x86, x86_64 & ppc64le:
-# ../../gdb/objfiles.h:510: internal-error: sect_index_data not initialized
-# A problem internal to GDB has been detected,
-# further debugging may prove unreliable.
 %ifarch %{gdb_arches}
 grep 'JavaCallWrapper::JavaCallWrapper' gdb.out
 %endif
@@ -2614,16 +2608,24 @@ end
 %endif
 
 %changelog
-* Mon Feb 14 2022 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.14.1.1-2
-- Require tzdata 2021e as of JDK-8275766.
+* Wed Feb 16 2022 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.14.1.1-4
+- Revert back to correct F34 state.
 
-* Fri Feb 11 2022 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.14.1.1-1
+* Mon Feb 14 2022 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.14.1.1-1
 - Update to jdk-11.0.14.1+1
 - Update release notes to 11.0.14.1+1
+- Separate crypto policy initialisation from FIPS initialisation, now they are no longer interdependent
+- Sync gdb test with java-1.8.0-openjdk.
+- Improve architecture restrictions for the gdb test.
+- Replace -mstackrealign with -mincoming-stack-boundary=2 -mpreferred-stack-boundary=4 on x86_32 for stack alignment
+- Refactor build functions so we can build just HotSpot without any attempt at installation.
+- Explicitly list JIT architectures rather than relying on those with slowdebug builds
+- Disable the serviceability agent on Zero architectures even when the architecture itself is supported
+- Add backport of JDK-8257794 to fix bogus assert on slowdebug x86-32 Zero builds
 
-* Wed Feb 09 2022 Jiri Vanek <jvanek@redhat.com> - 1:11.0.14.0.9-9
+* Mon Feb 14 2022 Jiri Vanek <jvanek@redhat.com> - 1:11.0.14.1.1-1
 - Storing and restoring alterntives during update manually
-- Fixing Bug 2001567 - update of JDK/JRE is removing its manually selected alterantives and select (as auto) system JDK/JRE
+- Fixing Bug 2001567 - update of JDK/JRE is removing its manually selected alternatives and select (as auto) system JDK/JRE
 -- The move of alternatives creation to posttrans to fix:
 -- Bug 1200302 - dnf reinstall breaks alternatives
 -- Had caused the alternatives to be removed, and then created again,
@@ -2631,105 +2633,51 @@ end
 -- the selection in family
 -- Thus this fix, is storing the family of manually selected master, and if
 -- stored, then it is restoring the family of the master
-
-* Wed Feb 09 2022 Jiri Vanek <jvanek@redhat.com> - 1:11.0.14.0.9-8
 - Family extracted to globals
-
-* Wed Feb 09 2022 Jiri Vanek <jvanek@redhat.com> - 1:11.0.14.0.9-7
 - javadoc-zip got its own provides next to plain javadoc ones
 
-* Mon Feb 07 2022 Severin Gehwolf <sgehwolf@redhat.com> - 1:11.0.14.0.9-6
-- Re-enable gdb backtrace check.
-
-* Thu Feb 03 2022 Jiri Vanek <jvanek@redhat.com> - 1:11.0.14.0.9-5
-- moved to stop being system jdk
-
-* Wed Feb 02 2022 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.14.0.9-3
-- Temporarily move x86 to use Zero in order to get a working build
-- Replace -mstackrealign with -mincoming-stack-boundary=2 -mpreferred-stack-boundary=4 on x86_32 for stack alignment
-- Refactor build functions so we can build just HotSpot without any attempt at installation.
-- Explicitly list JIT architectures rather than relying on those with slowdebug builds
-- Disable the serviceability agent on Zero architectures even when the architecture itself is supported
-- Add backport of JDK-8257794 to fix bogus assert on slowdebug x86-32 Zero builds
-
 * Mon Jan 24 2022 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.14.0.9-2
-- Separate crypto policy initialisation from FIPS initialisation, now they are no longer interdependent
+- Require tzdata 2021e as of JDK-8275766.
 
 * Mon Jan 24 2022 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.14.0.9-1
 - Update to jdk-11.0.14.0+9
 - Update release notes to 11.0.14.0+9
-- Switch to GA mode for final release.
-
-* Thu Jan 20 2022 Fedora Release Engineering <releng@fedoraproject.org> - 1:11.0.14.0.8-0.3.ea.1
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_36_Mass_Rebuild
-
-* Wed Jan 19 2022 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.14.0.8-0.3.ea
-- Improve architecture restrictions for the gdb test.
-- Disable only on x86, x86_64, ppc64le & s390x while these are broken in rawhide.
-
-* Tue Jan 18 2022 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.14.0.8-0.2.ea
-- Fix FIPS issues in native code and with initialisation of java.security.Security
-
-* Mon Jan 17 2022 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.14.0.8-0.1.ea
-- Sync gdb test with java-1.8.0-openjdk and disable for now until gdb is fixed.
-
-* Fri Jan 14 2022 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.14.0.8-0.1.ea
-- Update to jdk-11.0.14.0+8
-- Update release notes to 11.0.14.0+8
-
-* Mon Dec 13 2021 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.14.0.1-0.1.ea
-- Update to jdk-11.0.14.0+1
-- Update release notes to 11.0.14.0+1
-- Switch to EA mode for 11.0.14 pre-release builds.
 - Rename blacklisted.certs to blocked.certs following JDK-8253866
 - Rebase RH1996182 login patch and drop redundant security policy extension after JDK-8269034
-
-* Mon Nov 08 2021 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.13.0.8-4
+- Fix FIPS issues in native code and with initialisation of java.security.Security
 - Turn off bootstrapping for slow debug builds, which are particularly slow on ppc64le.
 
-* Wed Nov 03 2021 Severin Gehwolf <sgehwolf@redhat.com> - 1:11.0.13.0.8-3
+* Mon Nov 08 2021 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.13.0.8-2
+- Reduce disk footprint by removing build artifacts by default.
+- Turn off bootstrapping for slow debug builds, which are particularly slow on ppc64le.
+
+* Thu Nov 04 2021 Jiri Vanek <jvanek@redhat.com> - 1:11.0.13.0.8-2
+- Use featurever variable in boot and install paths rather than a hardcoded value
+- Fix comment to refer to all debug builds, not just slowdebug.
+
+* Wed Nov 03 2021 Severin Gehwolf <sgehwolf@redhat.com> - 1:11.0.13.0.8-2
 - Use 'sql:' prefix in nss.fips.cfg as F35+ no longer ship the legacy
   secmod.db file as part of nss
-
-* Wed Oct 13 2021 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.13.0.8-2
-- Reduce disk footprint by removing build artifacts by default.
+- Resolves: rhbz#2019555
 
 * Wed Oct 13 2021 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.13.0.8-1
 - Update to jdk-11.0.12.0+8
 - Update release notes to 11.0.12.0+8
-- Switch to GA mode for final release.
-
-* Tue Oct 12 2021 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.13.0.7-0.1.ea
-- Update to jdk-11.0.13.0+7
-- Update release notes to 11.0.13.0+7
-
-* Mon Oct 11 2021 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.13.0.1-0.1.ea
-- Update to jdk-11.0.13.0+1
-- Update release notes to 11.0.13.0+1
 - Update tarball generation script to use git following OpenJDK 11u's move to github
-- Switch to EA mode for 11.0.13 pre-release builds.
 - Remove "-clean" suffix as no 11.0.13 builds are unclean.
 - Drop JDK-8269668 patch which is now applied upstream.
-
-* Tue Oct 05 2021 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.12.0.7-9
+- Extend the default security policy to accomodate PKCS11 accessing jdk.internal.misc.
 - Allow plain key import to be disabled with -Dcom.redhat.fips.plainKeySupport=false
-
-* Tue Oct 05 2021 Martin Balao <mbalao@redhat.com> - 1:11.0.12.0.7-9
-- Add patch to allow plain key import.
-
-* Sun Oct 03 2021 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.12.0.7-8
 - Restructure the build so a minimal initial build is then used for the final build (with docs)
 - This reduces pressure on the system JDK and ensures the JDK being built can do a full build
 
-* Sun Sep 05 2021 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.12.0.7-7
+* Tue Oct 05 2021 Martin Balao <mbalao@redhat.com> - 1:11.0.13.0.8-1
 - Add patch to login to the NSS software token when in FIPS mode.
-- Extend the default security policy to accomodate PKCS11 accessing jdk.internal.misc.
+- Add patch to allow plain key import.
 
-* Thu Sep 02 2021 Jiri Vanek <jvanek@redhat.com> - 1:11.0.12.0.7-6
-- added posttrans hook which persist sanity of dir->symlink change in case of udpate from ancient versions
-
-* Thu Sep 02 2021 Jiri Vanek <jvanek@redhat.com> - 1:11.0.12.0.7-5
-- minor cosmetic improvements to make spec more comparable between variants
+* Thu Sep 02 2021 Jiri Vanek <jvanek@redhat.com> - 1:11.0.13.0.8-1
+- Added posttrans hook which persist sanity of dir->symlink change in case of update from ancient versions
+- Minor cosmetic improvements to make spec more comparable between variants
 
 * Tue Aug 31 2021 Jiri Vanek <jvanek@redhat.com> - 1:11.0.12.0.7-3
 - alternatives creation moved to posttrans
@@ -2755,30 +2703,11 @@ end
 * Thu Jul 08 2021 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.12.0.6-0.0.ea
 - Update to jdk-11.0.12.0+6
 - Update release notes to 11.0.12.0+6
-- Skip 11.0.12.0+5 as 11.0.12.0+6 only adds a test change
-
-* Thu Jul 08 2021 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.12.0.4-0.0.ea
-- Update to jdk-11.0.12.0+4
-- Update release notes to 11.0.12.0+4
 - Correct bug ID JDK-8264846 to intended ID of JDK-8264848
-
-* Mon Jul 05 2021 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.12.0.3-0.0.ea
-- Update to jdk-11.0.12.0+3
-- Update release notes to 11.0.12.0+3
-
-* Fri Jul 02 2021 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.12.0.2-0.1.ea
-- Use the "reverse" build loop (debug first) as the main and only build loop to get more diagnostics.
-- Remove restriction on disabling product build, as debug packages no longer have javadoc packages.
-
-* Fri Jul 02 2021 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.12.0.2-0.0.ea
-- Update to jdk-11.0.12.0+2
-- Update release notes to 11.0.12.0+2
-
-* Mon Jun 28 2021 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.12.0.1-0.0.ea
-- Update to jdk-11.0.12.0+1
-- Update release notes to 11.0.12.0+1
 - Switch to EA mode for 11.0.12 pre-release builds.
 - Update ECC patch following JDK-8226374 (bug ID yet to be confirmed)
+- Use the "reverse" build loop (debug first) as the main and only build loop to get more diagnostics.
+- Remove restriction on disabling product build, as debug packages no longer have javadoc packages.
 
 * Tue Jun 08 2021 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.11.0.9-5
 - Minor code cleanups on FIPS detection patch and check for SECMOD_GetSystemFIPSEnabled in configure.
@@ -2804,7 +2733,7 @@ end
 - Disable TLSv1.3 when the FIPS crypto policy and the NSS-FIPS provider are in use (RH1860986)
 - Resolves: rhbz#1830090
 
-* Fri May 07 2021 Jiri Vanek <jvanek@redhat.com> - 1:11.0.11.0.9-3
+* Fri May 07 2021 Jiri Vanek <jvanek@redhat.com> - 1:11.0.11.0.9-2
 - removed cjc backward comaptiblity, to fix when both rpm 4.16 and 4.17 are in transaction
 
 * Fri Apr 30 2021 Severin Gehwolf <sgehwolf@redhat.com> - 1:11.0.11.0.9-2
@@ -2812,7 +2741,8 @@ end
   code has been fixed.
 
 * Fri Apr 30 2021 Jiri Vanek <jvanek@redhat.com> - 1:11.0.11.0.9-1
-- adapted to newst cjc to fix issue with rpm 4.17
+- adapted to debug handling  in newer cjc
+- The rest of the "rpm 4.17" patch must NOT be backported, as on rpm 4.16 and down, it would casue double execution
 
 * Wed Apr 21 2021 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.11.0.9-0
 - Update to jdk-11.0.11.0+9
@@ -2820,7 +2750,7 @@ end
 - Switch to GA mode for final release.
 - Require tzdata 2021a to match upstream change JDK-8260356
 
-* Tue Apr 20 2021 Stephan Bergmann <sbergman@redhat.com> - 1:11.0.11.0.7-1.0.ea
+* Tue Apr 20 2021 Stephan Bergmann <sbergman@redhat.com> - 1:11.0.11.0.9-0
 - Disable copy-jdk-configs for Flatpak builds
 
 * Sun Apr 11 2021 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.11.0.7-0.0.ea
