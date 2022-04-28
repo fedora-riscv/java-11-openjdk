@@ -98,7 +98,7 @@
 
 # while JDK is a techpreview(is_system_jdk=0), some provides are turned off. Once jdk stops to be an techpreview, move it to 1
 # as sytem JDK, we mean any JDK which can run whole system java stack without issues (like bytecode issues, module issues, dependencies...)
-%global is_system_jdk 0
+%global is_system_jdk 1
 
 %global aarch64         aarch64 arm64 armv8
 # we need to distinguish between big and little endian PPC64
@@ -2679,9 +2679,6 @@ end
 
 * Mon Feb 07 2022 Severin Gehwolf <sgehwolf@redhat.com> - 1:11.0.14.0.9-6
 - Re-enable gdb backtrace check.
-
-* Thu Feb 03 2022 Jiri Vanek <jvanek@redhat.com> - 1:11.0.14.0.9-5
-- moved to stop being system jdk
 
 * Wed Feb 02 2022 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.14.0.9-3
 - Temporarily move x86 to use Zero in order to get a working build
