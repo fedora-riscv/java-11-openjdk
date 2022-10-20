@@ -26,7 +26,7 @@
 # Build a fresh libjvm.so for use in a copy of the bootstrap JDK
 %bcond_without fresh_libjvm
 # Build with system libraries
-%bcond_with system_libs
+%bcond_without system_libs
 
 # Workaround for stripping of debug symbols from static libraries
 %if %{with staticlibs}
@@ -378,7 +378,7 @@
 %global top_level_dir_name   %{origin}
 %global top_level_dir_name_backup %{top_level_dir_name}-backup
 %global buildver        8
-%global rpmrelease      1
+%global rpmrelease      2
 #%%global tagsuffix     %%{nil}
 # Priority must be 8 digits in total; up to openjdk 1.8, we were using 18..... so when we moved to 11, we had to add another digit
 %if %is_system_jdk
@@ -2727,6 +2727,9 @@ end
 %endif
 
 %changelog
+* Thu Oct 20 2022 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.17.0.8-2
+- Flip the use of system libraries back on by default, as in-tree libraries should only be used on Fedora 37+
+
 * Wed Oct 19 2022 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.17.0.8-1
 - Update to jdk-11.0.17+8 (GA)
 - Update release notes to 11.0.17+8
