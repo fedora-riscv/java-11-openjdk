@@ -26,7 +26,7 @@
 # Build a fresh libjvm.so for use in a copy of the bootstrap JDK
 %bcond_without fresh_libjvm
 # Build with system libraries
-%bcond_with system_libs
+%bcond_without system_libs
 
 # Workaround for stripping of debug symbols from static libraries
 %if %{with staticlibs}
