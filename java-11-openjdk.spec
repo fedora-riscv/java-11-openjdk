@@ -331,7 +331,7 @@
 # New Version-String scheme-style defines
 %global featurever 11
 %global interimver 0
-%global updatever 17
+%global updatever 18
 %global patchver 0
 # buildjdkver is usually same as %%{featurever},
 # but in time of bootstrap of next jdk, it is featurever-1,
@@ -377,7 +377,7 @@
 %global origin_nice     OpenJDK
 %global top_level_dir_name   %{origin}
 %global top_level_dir_name_backup %{top_level_dir_name}-backup
-%global buildver        8
+%global buildver        10
 %global rpmrelease      1
 #%%global tagsuffix     %%{nil}
 # Priority must be 8 digits in total; up to openjdk 1.8, we were using 18..... so when we moved to 11, we had to add another digit
@@ -1182,9 +1182,8 @@ Provides: jre%{?1} = %{epoch}:%{version}-%{release}
 Requires: ca-certificates
 # Require javapackages-filesystem for ownership of /usr/lib/jvm/ and macros
 Requires: javapackages-filesystem
-# 2022d required as of JDK-8294357
-# Should be bumped to 2022e once available (JDK-8295173)
-Requires: tzdata-java >= 2022d
+# 2022g required as of JDK-8297804
+Requires: tzdata-java >= 2022g
 # for support of kernel stream control
 # libsctp.so.1 is being `dlopen`ed on demand
 Requires: lksctp-tools%{?_isa}
@@ -1459,12 +1458,6 @@ Patch3:    rh649512-remove_uses_of_far_in_jpeg_libjpeg_turbo_1_4_compat_for_jdk1
 # able to be removed once that release is out
 # and used by this RPM.
 #############################################
-# JDK-8293834: Update CLDR data following tzdata 2022c update
-Patch2001: jdk8293834-kyiv_cldr_update.patch
-# JDK-8294357: (tz) Update Timezone Data to 2022d
-Patch2002: jdk8294357-tzdata2022d.patch
-# JDK-8295173: (tz) Update Timezone Data to 2022e
-Patch2003: jdk8295173-tzdata2022e.patch
 
 BuildRequires: autoconf
 BuildRequires: automake
@@ -1499,9 +1492,8 @@ BuildRequires: java-%{buildjdkver}-openjdk-devel
 %ifarch %{zero_arches}
 BuildRequires: libffi-devel
 %endif
-# 2022d required as of JDK-8294357
-# Should be bumped to 2022e once available (JDK-8295173)
-BuildRequires: tzdata-java >= 2022d
+# 2022g required as of JDK-8297804
+BuildRequires: tzdata-java >= 2022g
 # Earlier versions have a bug in tree vectorization on PPC
 BuildRequires: gcc >= 4.8.3-8
 
@@ -1884,10 +1876,6 @@ pushd %{top_level_dir_name}
 %patch1001 -p1
 # nss.cfg PKCS11 support; must come last as it also alters java.security
 %patch1000 -p1
-# tzdata updates targetted for 17.0.6
-%patch2001 -p1
-%patch2002 -p1
-%patch2003 -p1
 popd # openjdk
 
 %patch600
@@ -2727,6 +2715,27 @@ end
 %endif
 
 %changelog
+* Thu Jan 26 2023 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.18.0.10-1
+- Update to jdk-11.0.18+10 (GA)
+- Update release notes to 11.0.18+10
+- Switch to GA mode for release
+
+* Thu Jan 19 2023 Fedora Release Engineering <releng@fedoraproject.org> - 1:11.0.18.0.9-0.1.ea.1
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_38_Mass_Rebuild
+
+* Thu Dec 29 2022 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.18.0.9-0.1.ea
+- Update to jdk-11.0.18+9
+- Update release notes to 11.0.18+9
+- Drop local copy of JDK-8293834 now this is upstream
+- Require tzdata 2022g due to inclusion of JDK-8296108, JDK-8296715 & JDK-8297804
+- Update TestTranslations.java to test the new America/Ciudad_Juarez zone
+
+* Thu Dec 15 2022 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.18.0.1-0.1.ea
+- Update to jdk-11.0.18+1
+- Update release notes to 11.0.18+1
+- Switch to EA mode for 11.0.18 pre-release builds.
+- Drop local copies of JDK-8294357 & JDK-8295173 now upstream contains tzdata 2022e
+
 * Wed Oct 19 2022 Andrew Hughes <gnu.andrew@redhat.com> - 1:11.0.17.0.8-1
 - Update to jdk-11.0.17+8 (GA)
 - Update release notes to 11.0.17+8
