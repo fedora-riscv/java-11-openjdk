@@ -824,6 +824,7 @@ exit 0
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/psfont.properties.ja
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/psfontj2d.properties
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/tzdb.dat
+%{_jvmdir}/%{sdkdir -- %{?1}}/lib/tzdb.dat.upstream
 %dir %{_jvmdir}/%{sdkdir -- %{?1}}/lib/jli
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/jli/libjli.so
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/jvm.cfg
@@ -886,6 +887,7 @@ exit 0
 %dir %{etcjavadir -- %{?1}}/lib
 %dir %{etcjavadir -- %{?1}}/lib/security
 %{etcjavadir -- %{?1}}/lib/security/cacerts
+%{etcjavadir -- %{?1}}/lib/security/cacerts.upstream
 %dir %{etcjavadir -- %{?1}}/conf
 %dir %{etcjavadir -- %{?1}}/conf/management
 %dir %{etcjavadir -- %{?1}}/conf/security
