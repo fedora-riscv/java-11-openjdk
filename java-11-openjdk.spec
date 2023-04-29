@@ -1846,9 +1846,9 @@ function debugcheckjdk() {
                 IFS=$'\n'
                 for line in $(eu-readelf -s "$lib" | grep "00000000      0 FILE    LOCAL  DEFAULT")
                 do
-                    # We expect to see .cpp files, except for architectures like aarch64 and
+                    # We expect to see .cpp and .S files, except for architectures like aarch64 and
                     # s390 where we expect .o and .oS files
-                    echo "$line" | grep -E "ABS ((.*/)?[-_a-zA-Z0-9]+\.(c|cc|cpp|cxx|o|oS))?$"
+                    echo "$line" | grep -E "ABS ((.*/)?[-_a-zA-Z0-9]+\.(c|cc|cpp|cxx|o|S|oS))?$"
                 done
                 IFS="$old_IFS"
 
@@ -1862,7 +1862,7 @@ function debugcheckjdk() {
                 # debuginfo file. There shouldn't be any debuginfo files, so the link makes
                 # no sense either
                 eu-readelf -S "$lib" | grep 'gnu'
-                if eu-readelf -S "$lib" | grep '] .gnu_debuglink' | grep PROGBITS; then
+                if eu-readelf -S "$lib" | grep "\] .gnu_debuglink" | grep PROGBITS; then
                    echo "bad .gnu_debuglink section."
                    eu-readelf -x .gnu_debuglink "$lib"
                    false
