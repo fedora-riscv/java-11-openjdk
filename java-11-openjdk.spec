@@ -1954,7 +1954,7 @@ done
 cp -a ${jdk_image} $RPM_BUILD_ROOT%{_jvmdir}/%{sdkdir -- $suffix}
 cp -a ${src_image} $RPM_BUILD_ROOT%{_jvmdir}/%{sdkdir -- $suffix}/full_sources
 # JDK11 specific, bianry file in sources
-rm -vf "$RPM_BUILD_ROOT%{_jvmdir}/%{sdkdir -- $suffix}/full_sources/openjdk/test/jdk/sun/management/jmxremote/bootstrap/solaris-sparcv9/launcher"
+rm -v $RPM_BUILD_ROOT%{_jvmdir}/%{sdkdir -- $suffix}/full_sources/*/test/jdk/sun/management/jmxremote/bootstrap/solaris-sparcv9/launcher
 
 
 pushd ${jdk_image}
